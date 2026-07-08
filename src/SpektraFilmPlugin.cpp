@@ -698,13 +698,13 @@ inline constexpr ParamDefault kParamDefaults[] = {
   intDefault("process", 0),
   boolDefault("scanNegativeInvert", false),
   intDefault("inputColorSpace", 1),
-  intDefault("inputPrimariesColorSpace", 1),
-  intDefault("inputTransferColorSpace", 1),
+  intDefault("inputPrimariesColorSpace", 3),
+  intDefault("inputTransferColorSpace", 3),
   intDefault("rcmInputColorSpace", 0),
   intDefault("outputRole", 0),
   intDefault("sdrOutputColorSpace", 8),
-  intDefault("outputPrimariesColorSpace", 12),
-  intDefault("outputTransferColorSpace", 17),
+  intDefault("outputPrimariesColorSpace", 13),
+  intDefault("outputTransferColorSpace", 10),
   intDefault("sceneOutputColorSpace", 0),
   intDefault("hostClipPreferenceMode", 0),
   intDefault("hostOutputColourspaceMode", 0),
@@ -2509,44 +2509,45 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
     spektrafilm::ColorSpace::LinearRec709,
   };
   constexpr spektrafilm::ColorSpace kPrimariesColorSpaces[] = {
-    spektrafilm::ColorSpace::ArriLogC4,
+    spektrafilm::ColorSpace::Aces2065_1,
+    spektrafilm::ColorSpace::AcesCg,
+    spektrafilm::ColorSpace::AdobeRgb1998,
     spektrafilm::ColorSpace::ArriLogC3Ei800,
+    spektrafilm::ColorSpace::ArriLogC4,
     spektrafilm::ColorSpace::BmdFilmWideGamutGen5,
+    spektrafilm::ColorSpace::CanonLog3CinemaGamutD55,
     spektrafilm::ColorSpace::DavinciIntermediateWideGamut,
+    spektrafilm::ColorSpace::DciP3,
+    spektrafilm::ColorSpace::DisplayP3,
+    spektrafilm::ColorSpace::LinearP3D65,
+    spektrafilm::ColorSpace::ProPhotoRgb,
+    spektrafilm::ColorSpace::LinearRec2020,
+    spektrafilm::ColorSpace::LinearRec709,
     spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb,
     spektrafilm::ColorSpace::SonySLog3SGamut3,
     spektrafilm::ColorSpace::SonySLog3SGamut3Cine,
-    spektrafilm::ColorSpace::CanonLog3CinemaGamutD55,
-    spektrafilm::ColorSpace::PanasonicVLogVGamut,
-    spektrafilm::ColorSpace::Aces2065_1,
-    spektrafilm::ColorSpace::AcesCg,
-    spektrafilm::ColorSpace::LinearRec2020,
     spektrafilm::ColorSpace::LinearRec709,
-    spektrafilm::ColorSpace::LinearP3D65,
-    spektrafilm::ColorSpace::DisplayP3,
-    spektrafilm::ColorSpace::ProPhotoRgb,
-    spektrafilm::ColorSpace::AdobeRgb1998,
-    spektrafilm::ColorSpace::DciP3,
+    spektrafilm::ColorSpace::PanasonicVLogVGamut,
   };
   constexpr spektrafilm::ColorSpace kTransferColorSpaces[] = {
-    spektrafilm::ColorSpace::ArriLogC4,
+    spektrafilm::ColorSpace::AcesCc,
+    spektrafilm::ColorSpace::AcesCct,
+    spektrafilm::ColorSpace::AdobeRgb1998,
     spektrafilm::ColorSpace::ArriLogC3Ei800,
+    spektrafilm::ColorSpace::ArriLogC4,
     spektrafilm::ColorSpace::BmdFilmWideGamutGen5,
-    spektrafilm::ColorSpace::DavinciIntermediateWideGamut,
-    spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb,
-    spektrafilm::ColorSpace::SonySLog3SGamut3,
     spektrafilm::ColorSpace::CanonLog2CinemaGamutD55,
     spektrafilm::ColorSpace::CanonLog3CinemaGamutD55,
-    spektrafilm::ColorSpace::PanasonicVLogVGamut,
-    spektrafilm::ColorSpace::LinearRec2020,
-    spektrafilm::ColorSpace::AcesCct,
-    spektrafilm::ColorSpace::AcesCc,
-    spektrafilm::ColorSpace::Srgb,
-    spektrafilm::ColorSpace::ProPhotoRgb,
-    spektrafilm::ColorSpace::AdobeRgb1998,
-    spektrafilm::ColorSpace::P3D65Gamma26,
+    spektrafilm::ColorSpace::DavinciIntermediateWideGamut,
     spektrafilm::ColorSpace::Rec709Gamma22,
     spektrafilm::ColorSpace::Rec709Gamma24,
+    spektrafilm::ColorSpace::P3D65Gamma26,
+    spektrafilm::ColorSpace::LinearRec2020,
+    spektrafilm::ColorSpace::ProPhotoRgb,
+    spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb,
+    spektrafilm::ColorSpace::SonySLog3SGamut3,
+    spektrafilm::ColorSpace::Srgb,
+    spektrafilm::ColorSpace::PanasonicVLogVGamut,
   };
 
   spektrafilm::RenderParams params{};
@@ -2568,22 +2569,22 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
   }
   params.outputRole = outputRoleForFlavor(getIntAtTime(data->outputRole, time, 0));
   const int inputPrimariesIndex = std::clamp(
-    getIntAtTime(data->inputPrimariesColorSpace, time, 1),
+    getIntAtTime(data->inputPrimariesColorSpace, time, 3),
     0,
     static_cast<int>(std::size(kPrimariesColorSpaces) - 1u)
   );
   const int inputTransferIndex = std::clamp(
-    getIntAtTime(data->inputTransferColorSpace, time, 1),
+    getIntAtTime(data->inputTransferColorSpace, time, 3),
     0,
     static_cast<int>(std::size(kTransferColorSpaces) - 1u)
   );
   const int outputPrimariesIndex = std::clamp(
-    getIntAtTime(data->outputPrimariesColorSpace, time, 12),
+    getIntAtTime(data->outputPrimariesColorSpace, time, 13),
     0,
     static_cast<int>(std::size(kPrimariesColorSpaces) - 1u)
   );
   const int outputTransferIndex = std::clamp(
-    getIntAtTime(data->outputTransferColorSpace, time, 17),
+    getIntAtTime(data->outputTransferColorSpace, time, 10),
     0,
     static_cast<int>(std::size(kTransferColorSpaces) - 1u)
   );
@@ -7006,54 +7007,55 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     "Rec.709 / Gamma 2.4"
   };
   const char *primariesColorSpaces[] = {
-    "ARRI Wide Gamut 4",
+    "ACES2065-1",
+    "ACEScg",
+    "Adobe RGB (1998)",
     "ARRI Wide Gamut 3",
+    "ARRI Wide Gamut 4",
     "Blackmagic Wide Gamut",
+    "Canon Cinema Gamut D55",
     "DaVinci Wide Gamut",
+    "DCI-P3",
+    "Display P3",
+    "P3-D65",
+    "ProPhoto RGB",
+    "Rec.2020",
+    "Rec.709",
     "REDWideGamutRGB",
     "S-Gamut3",
     "S-Gamut3.Cine",
-    "Canon Cinema Gamut D55",
-    "V-Gamut",
-    "ACES2065-1",
-    "ACEScg",
-    "Rec.2020",
-    "Rec.709 / sRGB",
-    "P3-D65",
-    "Display P3",
-    "ProPhoto RGB",
-    "Adobe RGB (1998)",
-    "DCI-P3"
+    "sRGB",
+    "V-Gamut"
   };
   const char *transferColorSpaces[] = {
-    "ARRI LogC4",
+    "ACEScc",
+    "ACEScct",
+    "Adobe RGB Gamma 2.199",
     "ARRI LogC3",
+    "ARRI LogC4",
     "Blackmagic Film Gen 5",
-    "DaVinci Intermediate",
-    "RED Log3G10",
-    "S-Log3",
     "Canon Log 2",
     "Canon Log 3",
-    "V-Log",
-    "Linear",
-    "ACEScct",
-    "ACEScc",
-    "sRGB",
-    "ProPhoto",
-    "Adobe RGB Gamma 2.199",
-    "Gamma 2.6",
+    "DaVinci Intermediate",
     "Gamma 2.2",
-    "Gamma 2.4"
+    "Gamma 2.4",
+    "Gamma 2.6",
+    "Linear",
+    "ProPhoto",
+    "RED Log3G10",
+    "S-Log3",
+    "sRGB",
+    "V-Log"
   };
   defineChoice(paramSet, "inputColorSpace", "Legacy Input Color Space", colorSpaces, static_cast<int>(sizeof(colorSpaces) / sizeof(colorSpaces[0])), 1, "colorGroup");
-  defineChoice(paramSet, "inputPrimariesColorSpace", "Input Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 1, "colorGroup");
-  defineChoice(paramSet, "inputTransferColorSpace", "Input Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 1, "colorGroup");
+  defineChoice(paramSet, "inputPrimariesColorSpace", "Input Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 3, "colorGroup");
+  defineChoice(paramSet, "inputTransferColorSpace", "Input Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 3, "colorGroup");
   defineChoice(paramSet, "rcmInputColorSpace", "Input Color Space", rcmInputColorSpaces, static_cast<int>(sizeof(rcmInputColorSpaces) / sizeof(rcmInputColorSpaces[0])), 0, "colorGroup");
   const char *outputRoles[] = {"Display Out SDR", "Display Out HDR", "RCM/ACES (Beta)"};
   defineChoice(paramSet, "outputRole", "Output Role", outputRoles, outputRoleOptionCountForFlavor(), 0, "colorGroup");
   defineChoice(paramSet, "sdrOutputColorSpace", "Legacy Output Color Space", sdrOutputColorSpaces, static_cast<int>(sizeof(sdrOutputColorSpaces) / sizeof(sdrOutputColorSpaces[0])), 8, "colorGroup");
-  defineChoice(paramSet, "outputPrimariesColorSpace", "Output Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 12, "colorGroup");
-  defineChoice(paramSet, "outputTransferColorSpace", "Output Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 17, "colorGroup");
+  defineChoice(paramSet, "outputPrimariesColorSpace", "Output Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 13, "colorGroup");
+  defineChoice(paramSet, "outputTransferColorSpace", "Output Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 10, "colorGroup");
   defineChoice(paramSet, "sceneOutputColorSpace", "Output Color Space", sceneOutputColorSpaces, static_cast<int>(sizeof(sceneOutputColorSpaces) / sizeof(sceneOutputColorSpaces[0])), 0, "colorGroup");
   const char *hdrPresets[] = {"PQ 1000", "PQ 4000", "HLG 1000", "Custom"};
   defineChoice(paramSet, "hdrPreset", "HDR Preset", hdrPresets, 4, 0, "colorGroup");
