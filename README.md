@@ -1,7 +1,5 @@
 # Look Film Lab
 
-[Português do Brasil](README.pt-BR.md)
-
 Simplify the workflow to obtain consistent results. The project prioritizes
 reduced controls, calibrated stocks, and stable releases for DaVinci Resolve
 workflows, both in the Color page and the new Photos page. The package is
@@ -21,9 +19,9 @@ This demonstration distribution includes:
 
 | Plugin | Version | Distribution | Get Key |
 | --- | --- | --- | --- |
-| Look Film Lab CINE | 0.1.0 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=0e0f439a-a923-463a-9871-a2e1fbff6512&sig=8a17ba59b4cf673e) |
-| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=b14f2962-e363-469a-9107-eea7114a2278&sig=bbf12f349303a7cb) |
-| Look Film Lab SCAN | 0.1.4 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=df16b079-4aff-4a31-a317-fab1c295f31f&sig=93d7d8cf4a16c6ec) |
+| Look Film Lab CINE | 0.1.0 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
+| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
+| Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
 
 ## Look Film Lab CINE
 
