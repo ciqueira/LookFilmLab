@@ -1,1 +1,150 @@
-# LookFilmLab
+# Look Film Lab
+
+[Português do Brasil](README.pt-BR.md)
+
+Simplify the workflow to obtain consistent results. The project prioritizes
+reduced controls, calibrated stocks, and stable releases for DaVinci Resolve
+workflows, both in the Color page and the new Photos page. The package is
+divided into three parts with different roles.
+
+The tools use a modified GPL-3.0 codebase related to `spektrafilm-ofx`, itself a
+native OpenFX port and expansion of the original Python `spektrafilm` project.
+
+Look Film Lab Plugins is distributed through
+[MCNexus](https://github.com/ciqueira/MCNexus). Nexus provides distribution,
+license delivery, updates, and product support. MCNexus is the desktop
+application used to activate, install, update, and manage the plugins.
+
+## Included Plugins
+
+This demonstration distribution includes:
+
+| Plugin | Version | Distribution | Get Key |
+| --- | --- | --- | --- |
+| Look Film Lab CINE | 0.1.0 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=0e0f439a-a923-463a-9871-a2e1fbff6512&sig=8a17ba59b4cf673e) |
+| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=b14f2962-e363-469a-9107-eea7114a2278&sig=bbf12f349303a7cb) |
+| Look Film Lab SCAN | 0.1.4 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=spektrafilm-ofx-look&tmpl=df16b079-4aff-4a31-a317-fab1c295f31f&sig=93d7d8cf4a16c6ec) |
+
+## Look Film Lab CINE
+
+Look Film Lab CINE is intended for film-oriented color grading with cinema
+stocks. The workflow combines negative selection, print selection, stock
+calibration, and laboratory controls in an interface with fewer exposed
+parameters.
+
+The process follows the logic of a photochemical chain:
+
+- `Profile Negative`: selects the negative stock used as the base.
+- `Profile Print`: selects the print material or output paper.
+- `Film Format`: changes the format reference for the spatial response.
+- `Exposure EV`: adjusts exposure before the film response.
+- `Film Push / Pull Stops`: simulates development variation in the negative.
+- `Negative Bleach Bypass`: adds a neutral silver-retention response to the
+  negative.
+- `Printer Light`: changes color balance during the print stage.
+- `Print Bleach Bypass`: applies silver retention in the print stage.
+
+The intent is not to expose the full spectral model, but to keep the controls
+that most affect look building.
+
+## Look Film Lab PHOTO
+
+Look Film Lab PHOTO adapts digital photos toward film-stock characteristics
+using part of the same spectral base as CINE. The interface keeps negative
+selection, paper selection used by photographic stocks, push/pull, and bleach
+bypass in a more direct configuration for still images.
+
+The plugin is intended for the Resolve Photos page and for workflows where
+multiple images need to keep a consistent visual direction without rebuilding a
+node structure for each photo.
+
+## Look Film Lab SCAN
+
+Look Film Lab SCAN is intended for scanned physical negatives. The tool handles
+image inversion to positive, film-base compensation, scan exposure, per-channel
+density scale, and emulated paper selection.
+
+Main public controls:
+
+- `Film Base Color`, `Film Base Temp`, and `Film Base Tint`: correct the orange
+  base or variations in scanned material.
+- `Scan Exposure EV`: adjusts scan exposure before conversion.
+- `Density Scale R/G/B`: balances channel density.
+- `Profile Print`: defines the paper response used after inversion.
+- `Print Push / Pull Stops` and `Print Bleach Bypass`: adjust the final print
+  stage.
+
+The workflow preserves the physical negative characteristics and applies the
+print response on a simulated paper.
+
+## Platform Support
+
+Current builds support:
+
+- macOS, Apple Silicon and compatible Intel Macs
+- Windows x64
+
+Supported processing backends:
+
+- Metal on macOS
+- Vulkan in the corresponding Windows builds
+
+## Installation
+
+Each Look Film Lab plugin has its own OpenKey demonstration license.
+
+1. Use the matching `Get Key` link in the table above.
+2. Authorize with a GitHub account.
+3. Copy the issued license key.
+4. Open MCNexus.
+5. Activate the matching plugin with that key.
+6. Install or update the plugin through MCNexus.
+
+Lost key: open the same claim link with the same GitHub account to recover the
+issued license.
+
+## Credits
+
+Original Python `spektrafilm` project:
+
+Andrea Volpato  
+https://github.com/andreavolpato/spektrafilm
+
+Native OpenFX port and expansion:
+
+Aedan Oskar Otto Diez / chaert-s  
+https://github.com/chaert-s/spektrafilm-ofx
+
+Look Film Lab modification, product split, calibration, MCNexus distribution,
+and releases:
+
+Magno Ciqueira  
+https://github.com/ciqueira
+
+OpenFX SDK:
+
+Academy Software Foundation OpenFX  
+https://github.com/AcademySoftwareFoundation/openfx
+
+## License
+
+Look Film Lab Plugins is an independent modified distribution based on
+GPL-3.0 licensed `spektrafilm-ofx` source code. It is not an official
+`spektrafilm-ofx` release and is not an official release of the original Python
+`spektrafilm` project. No endorsement by the upstream authors is implied.
+
+See:
+
+- [LICENSE.txt](LICENSE.txt)
+- [MODIFICATIONS.md](MODIFICATIONS.md)
+- [DISTRIBUTION.md](DISTRIBUTION.md)
+- [Legal/THIRD_PARTY_NOTICES.txt](Legal/THIRD_PARTY_NOTICES.txt)
+
+## Binary Releases
+
+Binary OFX releases are distributed through Nexus and may also be published
+through GitHub Releases.
+
+Each public binary release should include or link to the corresponding source
+code for that exact release, along with GPL-3.0 license text, modification
+notes, distribution notes, and third-party notices.
