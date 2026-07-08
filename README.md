@@ -19,9 +19,9 @@ This demonstration distribution includes:
 
 | Plugin | Version | Distribution | Get Key |
 | --- | --- | --- | --- |
-| Look Film Lab CINE | 0.2.0 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
-| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
-| Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
+| Look Film Lab CINE | 0.2.0 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
+| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
+| Look Film Lab SCAN | 0.1.4 | OpenKey | [Get Key](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
 
 ## Look Film Lab CINE
 
