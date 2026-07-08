@@ -144,6 +144,8 @@ VERSION="$(sed -nE 's/^set\(SPEKTRAFILM_MACOS_VERSION "([^"]+)".*/\1/p' "${PROJE
 DEFAULT_MANUAL="${PROJECT_ROOT}/../../docs/user_manual/main.pdf"
 if [[ -f "${DEFAULT_MANUAL}" ]]; then
   USER_MANUAL="${DEFAULT_MANUAL}"
+elif [[ -f "${PROJECT_ROOT}/../../MCLookFilmLabMake/documentation/spektrafilm_reference_guide.pdf" ]]; then
+  USER_MANUAL="${PROJECT_ROOT}/../../MCLookFilmLabMake/documentation/spektrafilm_reference_guide.pdf"
 else
   USER_MANUAL="${PROJECT_ROOT}/documentation/spektrafilm_reference_guide.pdf"
 fi

@@ -81,6 +81,9 @@ $DefaultManual = Join-Path $ProjectRoot "..\..\docs\user_manual\main.pdf"
 if (Test-Path $DefaultManual) {
   $Manual = Convert-ToFullPath $DefaultManual
 }
+elseif (Test-Path (Join-Path $ProjectRoot "..\..\MCLookFilmLabMake\documentation\spektrafilm_reference_guide.pdf")) {
+  $Manual = Convert-ToFullPath (Join-Path $ProjectRoot "..\..\MCLookFilmLabMake\documentation\spektrafilm_reference_guide.pdf")
+}
 else {
   $Manual = Join-Path $ProjectRoot "documentation\spektrafilm_reference_guide.pdf"
 }
