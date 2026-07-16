@@ -105,11 +105,11 @@
 #endif
 
 #ifndef SPEKTRAFILM_PLUGIN_IDENTIFIER
-#  define SPEKTRAFILM_PLUGIN_IDENTIFIER "org.spektrafilm.dev"
+#  define SPEKTRAFILM_PLUGIN_IDENTIFIER "com.mclookfilmlab.dev"
 #endif
 
 #ifndef SPEKTRAFILM_PLUGIN_LABEL
-#  define SPEKTRAFILM_PLUGIN_LABEL "spektrafilm dev"
+#  define SPEKTRAFILM_PLUGIN_LABEL "Look Film Lab Dev"
 #endif
 
 #ifndef SPEKTRAFILM_PLUGIN_FLAVOR

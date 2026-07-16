@@ -145,10 +145,10 @@ std::filesystem::path modulePath() {
 
 std::filesystem::path findResourcePath(const std::filesystem::path &relativePath) {
   std::vector<std::filesystem::path> directories;
-  if (std::filesystem::path resourceDir = envPath("SPEKTRAFILM_RESOURCE_DIR"); !resourceDir.empty()) {
-    directories.push_back(resourceDir);
-  }
 
+  // Prefer the bundle that owns this renderer. Several OFX plugins coexist in
+  // the host process and the upstream resource directory may contain shaders
+  // with the same filenames but a different ABI.
   const std::filesystem::path imagePath = modulePath();
   if (!imagePath.empty()) {
     const std::filesystem::path contentsPath = imagePath.parent_path().parent_path();
@@ -158,6 +158,15 @@ std::filesystem::path findResourcePath(const std::filesystem::path &relativePath
     if (!imagePath.parent_path().empty()) {
       directories.push_back(imagePath.parent_path());
     }
+  }
+
+  if (std::filesystem::path resourceDir = envPath("MCLOOKFILMLAB_RESOURCE_DIR"); !resourceDir.empty()) {
+    directories.push_back(resourceDir);
+  }
+  // Keep compatibility with upstream development harnesses, but never let
+  // their process-wide override supersede this plugin's own bundle.
+  if (std::filesystem::path resourceDir = envPath("SPEKTRAFILM_RESOURCE_DIR"); !resourceDir.empty()) {
+    directories.push_back(resourceDir);
   }
 
   directories.push_back(std::filesystem::current_path());

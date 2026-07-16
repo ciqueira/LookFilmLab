@@ -32,40 +32,13 @@ namespace {
 int bundleImageAnchor = 0;
 
 NSURL *findBundleResourceURL(NSString *name, NSString *extension) {
-  NSArray<NSString *> *bundleIdentifiers = @[
-    @"org.spektrafilm",
-    @"org.spektrafilm.flow",
-    @"org.spektrafilm.dev"
-  ];
-  for (NSString *bundleIdentifier in bundleIdentifiers) {
-    NSBundle *pluginBundle = [NSBundle bundleWithIdentifier:bundleIdentifier];
-    if (pluginBundle) {
-      NSURL *url = [pluginBundle URLForResource:name withExtension:extension];
-      if (url) {
-        return url;
-      }
-    }
-  }
-  for (NSBundle *candidate in [NSBundle allBundles]) {
-    NSURL *url = [candidate URLForResource:name withExtension:extension];
-    if (url) {
-      return url;
-    }
-  }
-  NSString *fallback = [[NSBundle mainBundle] pathForResource:name ofType:extension];
-  if (fallback) {
-    return [NSURL fileURLWithPath:fallback];
-  }
-
   NSMutableArray<NSString *> *fallbackDirectories = [NSMutableArray array];
-  NSString *resourceDir = [[[NSProcessInfo processInfo] environment] objectForKey:@"SPEKTRAFILM_RESOURCE_DIR"];
-  if ([resourceDir length] > 0) {
-    [fallbackDirectories addObject:resourceDir];
-  }
-  NSString *mainResourcePath = [[NSBundle mainBundle] resourcePath];
-  if ([mainResourcePath length] > 0) {
-    [fallbackDirectories addObject:mainResourcePath];
-  }
+
+  // Resolve resources relative to this plugin image before consulting any
+  // process-wide fallback. Hosts load several OFX bundles into one process;
+  // looking through NSBundle.allBundles can otherwise select the original
+  // SpektraFilm metallib (which has the same filename) when both products are
+  // installed.
   Dl_info imageInfo;
   if (dladdr(&bundleImageAnchor, &imageInfo) != 0 && imageInfo.dli_fname) {
     NSString *imagePath = [NSString stringWithUTF8String:imageInfo.dli_fname];
@@ -77,6 +50,22 @@ NSURL *findBundleResourceURL(NSString *name, NSString *extension) {
     if ([imageDirectory length] > 0) {
       [fallbackDirectories addObject:imageDirectory];
     }
+  }
+
+  NSDictionary<NSString *, NSString *> *environment = [[NSProcessInfo processInfo] environment];
+  NSString *resourceDir = [environment objectForKey:@"MCLOOKFILMLAB_RESOURCE_DIR"];
+  if ([resourceDir length] > 0) {
+    [fallbackDirectories addObject:resourceDir];
+  }
+  // Retain the upstream variable only as a lower-priority development
+  // fallback. Installed bundles always resolve through their own image above.
+  NSString *legacyResourceDir = [environment objectForKey:@"SPEKTRAFILM_RESOURCE_DIR"];
+  if ([legacyResourceDir length] > 0) {
+    [fallbackDirectories addObject:legacyResourceDir];
+  }
+  NSString *mainResourcePath = [[NSBundle mainBundle] resourcePath];
+  if ([mainResourcePath length] > 0) {
+    [fallbackDirectories addObject:mainResourcePath];
   }
   NSString *executablePath = [[NSBundle mainBundle] executablePath];
   NSString *executableDirectory = [executablePath stringByDeletingLastPathComponent];
