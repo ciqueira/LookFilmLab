@@ -12,7 +12,7 @@ As ferramentas usam uma base modificada GPL-3.0 relacionada ao
 projeto original `spektrafilm` em Python.
 
 Look Film Lab Plugins é distribuído pelo
-[MCNexus](https://github.com/ciqueira/MCNexus). O Nexus fornece distribuição,
+[MCNexus](https://mcnexus.app). O Nexus fornece distribuição,
 entrega de licenças, atualizações e suporte ao produto. O MCNexus é o aplicativo
 desktop usado para ativar, instalar, atualizar e gerenciar os plugins.
 
@@ -22,9 +22,9 @@ Esta distribuição de demonstração inclui:
 
 | Plugin | Versão | Distribuição | Obter Chave |
 | --- | --- | --- | --- |
-| Look Film Lab CINE | 0.2.0 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
-| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
-| Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.magnociqueira.com.br/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
+| Look Film Lab CINE | 0.2.0 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
+| Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
+| Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
 
 ## Look Film Lab CINE
 
