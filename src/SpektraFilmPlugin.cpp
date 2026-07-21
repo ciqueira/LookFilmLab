@@ -406,21 +406,27 @@ inline constexpr ParamMetadata kParamMetadata[] = {
 
   {"calibrationBuildInfo", "calibrationGroup", kParamTagNone},
   {"activeCalibrationInfo", "calibrationGroup", kParamTagNone},
-  {"hostColourManagementInfo", "calibrationGroup", kParamTagNone},
-  {"colourManagementConfigInfo", "calibrationGroup", kParamTagNone},
-  {"ocioConfigInfo", "calibrationGroup", kParamTagNone},
-  {"sourceColourspaceInfo", "calibrationGroup", kParamTagNone},
-  {"outputColourspaceInfo", "calibrationGroup", kParamTagNone},
-  {"displayColourspaceInfo", "calibrationGroup", kParamTagNone},
-  {"resolvedUserTimelineInfo", "calibrationGroup", kParamTagNone},
-  {"hostClipPreferencesCallInfo", "calibrationGroup", kParamTagNone},
-  {"hostOutputColourspaceCallInfo", "calibrationGroup", kParamTagNone},
-  {"hostClipPreferenceRequestInfo", "calibrationGroup", kParamTagNone},
-  {"hostOutputPreferredRequestInfo", "calibrationGroup", kParamTagNone},
-  {"hostOutputColourspaceReplyInfo", "calibrationGroup", kParamTagNone},
-  {"hostClipPreferenceMode", "calibrationGroup", kParamTagNone},
-  {"hostOutputColourspaceMode", "calibrationGroup", kParamTagNone},
-  {"refreshHostColourDiagnostics", "calibrationGroup", kParamTagNone},
+  {"hostColourManagementInfo", "timelineDebugGroup", kParamTagNone},
+  {"colourManagementConfigInfo", "timelineDebugGroup", kParamTagNone},
+  {"ocioConfigInfo", "timelineDebugGroup", kParamTagNone},
+  {"sourceColourspaceInfo", "timelineDebugGroup", kParamTagNone},
+  {"outputColourspaceInfo", "timelineDebugGroup", kParamTagNone},
+  {"displayColourspaceInfo", "timelineDebugGroup", kParamTagNone},
+  {"resolvedUserTimelineInfo", "timelineDebugGroup", kParamTagNone},
+  {"resolvedInputPrimariesInfo", "timelineDebugGroup", kParamTagNone},
+  {"resolvedInputTransferInfo", "timelineDebugGroup", kParamTagNone},
+  {"resolvedOutputPrimariesInfo", "timelineDebugGroup", kParamTagNone},
+  {"resolvedOutputTransferInfo", "timelineDebugGroup", kParamTagNone},
+  {"timelineResolutionStatusInfo", "timelineDebugGroup", kParamTagNone},
+  {"timelineProcessingPathInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostClipPreferencesCallInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostOutputColourspaceCallInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostClipPreferenceRequestInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostOutputPreferredRequestInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostOutputColourspaceReplyInfo", "timelineDebugGroup", kParamTagNone},
+  {"hostClipPreferenceMode", "timelineDebugGroup", kParamTagNone},
+  {"hostOutputColourspaceMode", "timelineDebugGroup", kParamTagNone},
+  {"refreshHostColourDiagnostics", "timelineDebugGroup", kParamTagNone},
   {"saveGlobalCalibration", "calibrationGroup", kParamTagNone},
   {"saveNegativeCalibration", "calibrationGroup", kParamTagNone},
   {"savePrintCalibration", "calibrationGroup", kParamTagNone},
@@ -544,11 +550,17 @@ bool calibrationParam(const char *name) {
     "dirGammaGToRb",
     "dirGammaBToRg",
     "dirUsesStockCalibration",
+    "scannerEnabled",
+    "scannerWhiteCorrection",
+    "scannerWhiteLevel",
   };
   return stringInList(name, kCalibrationParams, std::size(kCalibrationParams));
 }
 
 bool parameterVisibleInFlavor(const ParamMetadata &metadata) {
+  if (std::strcmp(metadata.parentGroup, "timelineDebugGroup") == 0) {
+    return isProCalibrationBuild();
+  }
   if (isProProductionBuild()) {
     return productionPublicParam(metadata.name);
   }
@@ -579,6 +591,9 @@ bool shouldDefineParam(const char *name) {
 }
 
 bool groupVisibleInFlavor(const char *name) {
+  if (std::strcmp(name, "timelineDebugGroup") == 0) {
+    return isProCalibrationBuild();
+  }
   if (isProProductionBuild()) {
     if (std::strcmp(name, "colorGroup") == 0 ||
         std::strcmp(name, "productionStocksGroup") == 0 ||
@@ -648,7 +663,6 @@ spektrafilm::OutputRole outputRoleForFlavor(int value) {
     case spektrafilm::OutputRole::DisplayHdr:
       return spektrafilm::OutputRole::DisplayHdr;
     case spektrafilm::OutputRole::Rcm:
-      return spektrafilm::OutputRole::Rcm;
     case spektrafilm::OutputRole::DisplaySdr:
     default:
       return spektrafilm::OutputRole::DisplaySdr;
@@ -698,13 +712,13 @@ inline constexpr ParamDefault kParamDefaults[] = {
   intDefault("process", 0),
   boolDefault("scanNegativeInvert", false),
   intDefault("inputColorSpace", 1),
-  intDefault("inputPrimariesColorSpace", 3),
-  intDefault("inputTransferColorSpace", 3),
+  intDefault("inputPrimariesColorSpace", 4),
+  intDefault("inputTransferColorSpace", 4),
   intDefault("rcmInputColorSpace", 0),
   intDefault("outputRole", 0),
   intDefault("sdrOutputColorSpace", 8),
-  intDefault("outputPrimariesColorSpace", 13),
-  intDefault("outputTransferColorSpace", 10),
+  intDefault("outputPrimariesColorSpace", 1),
+  intDefault("outputTransferColorSpace", 1),
   intDefault("sceneOutputColorSpace", 0),
   intDefault("hostClipPreferenceMode", 0),
   intDefault("hostOutputColourspaceMode", 0),
@@ -1020,6 +1034,7 @@ struct InstanceData {
   OfxParamHandle scannedNegativeGroup = nullptr;
   OfxParamHandle couplerGroup = nullptr;
   OfxParamHandle calibrationGroup = nullptr;
+  OfxParamHandle timelineDebugGroup = nullptr;
   OfxParamHandle calibrationBuildInfo = nullptr;
   OfxParamHandle activeCalibrationInfo = nullptr;
   OfxParamHandle hostColourManagementInfo = nullptr;
@@ -1029,6 +1044,12 @@ struct InstanceData {
   OfxParamHandle outputColourspaceInfo = nullptr;
   OfxParamHandle displayColourspaceInfo = nullptr;
   OfxParamHandle resolvedUserTimelineInfo = nullptr;
+  OfxParamHandle resolvedInputPrimariesInfo = nullptr;
+  OfxParamHandle resolvedInputTransferInfo = nullptr;
+  OfxParamHandle resolvedOutputPrimariesInfo = nullptr;
+  OfxParamHandle resolvedOutputTransferInfo = nullptr;
+  OfxParamHandle timelineResolutionStatusInfo = nullptr;
+  OfxParamHandle timelineProcessingPathInfo = nullptr;
   OfxParamHandle hostClipPreferencesCallInfo = nullptr;
   OfxParamHandle hostOutputColourspaceCallInfo = nullptr;
   OfxParamHandle hostClipPreferenceRequestInfo = nullptr;
@@ -1601,6 +1622,7 @@ void syncConditionalParamVisibility(InstanceData *data) {
   setParamSecretForFlavor(data->inputPrimariesColorSpace, "inputPrimariesColorSpace", false);
   setParamSecretForFlavor(data->inputTransferColorSpace, "inputTransferColorSpace", false);
   setParamSecretForFlavor(data->rcmInputColorSpace, "rcmInputColorSpace", true);
+  setParamSecretForFlavor(data->outputRole, "outputRole", true);
   setParamSecretForFlavor(data->sdrOutputColorSpace, "sdrOutputColorSpace", true);
   setParamSecretForFlavor(data->outputPrimariesColorSpace, "outputPrimariesColorSpace", hdrOutput);
   setParamSecretForFlavor(data->outputTransferColorSpace, "outputTransferColorSpace", hdrOutput);
@@ -2475,6 +2497,12 @@ void applyCalibrationSnapshotToRenderParams(spektrafilm::RenderParams &params, c
     } else if (name == "dirGammaBToRg") {
       params.dirCouplersGammaBToR = static_cast<float>(storedDoubleValue(value, 0, params.dirCouplersGammaBToR));
       params.dirCouplersGammaBToG = static_cast<float>(storedDoubleValue(value, 1, params.dirCouplersGammaBToG));
+    } else if (name == "scannerEnabled") {
+      params.scannerEnabled = storedIntValue(value, 0, params.scannerEnabled ? 1 : 0) != 0;
+    } else if (name == "scannerWhiteCorrection") {
+      params.scannerWhiteCorrection = storedIntValue(value, 0, params.scannerWhiteCorrection ? 1 : 0) != 0;
+    } else if (name == "scannerWhiteLevel") {
+      params.scannerWhiteLevel = static_cast<float>(storedDoubleValue(value, 0, params.scannerWhiteLevel));
     }
   }
 }
@@ -2488,6 +2516,248 @@ void applyBundledProductionCalibration(spektrafilm::RenderParams &params) {
   applyCalibrationSnapshotToRenderParams(params, snapshot->negative);
   applyCalibrationSnapshotToRenderParams(params, snapshot->print);
   applyCalibrationSnapshotToRenderParams(params, snapshot->pairOverride);
+}
+
+constexpr int kReservedRcmChoice = 0;
+constexpr int kInputArriWideGamut3PrimariesChoice = 4;
+constexpr int kInputArriLogC3TransferChoice = 4;
+constexpr int kRec709PrimariesChoice = 1;
+constexpr int kGamma24TransferChoice = 1;
+constexpr int kSrgbPrimariesChoice = 2;
+constexpr int kDisplayP3PrimariesChoice = 3;
+constexpr int kProPhotoPrimariesChoice = 4;
+constexpr int kAdobeRgbPrimariesChoice = 5;
+constexpr int kDciP3PrimariesChoice = 6;
+constexpr int kP3D65PrimariesChoice = 7;
+constexpr int kGamma22TransferChoice = 2;
+constexpr int kSrgbTransferChoice = 3;
+constexpr int kProPhotoTransferChoice = 4;
+constexpr int kGamma2199TransferChoice = 5;
+constexpr int kGamma26TransferChoice = 6;
+
+bool outputColourPairIsValid(int primariesChoice, int transferChoice) {
+  switch (primariesChoice) {
+    case kRec709PrimariesChoice:
+      return transferChoice == kGamma22TransferChoice || transferChoice == kGamma24TransferChoice;
+    case kSrgbPrimariesChoice:
+    case kDisplayP3PrimariesChoice:
+      return transferChoice == kSrgbTransferChoice;
+    case kProPhotoPrimariesChoice:
+      return transferChoice == kProPhotoTransferChoice;
+    case kAdobeRgbPrimariesChoice:
+      return transferChoice == kGamma2199TransferChoice;
+    case kDciP3PrimariesChoice:
+      return transferChoice == kGamma26TransferChoice;
+    case kP3D65PrimariesChoice:
+      return transferChoice == kGamma22TransferChoice || transferChoice == kGamma26TransferChoice;
+    default:
+      return false;
+  }
+}
+
+int defaultTransferChoiceForPrimaries(int primariesChoice) {
+  switch (primariesChoice) {
+    case kSrgbPrimariesChoice:
+    case kDisplayP3PrimariesChoice: return kSrgbTransferChoice;
+    case kProPhotoPrimariesChoice: return kProPhotoTransferChoice;
+    case kAdobeRgbPrimariesChoice: return kGamma2199TransferChoice;
+    case kDciP3PrimariesChoice:
+    case kP3D65PrimariesChoice: return kGamma26TransferChoice;
+    case kRec709PrimariesChoice:
+    default: return kGamma24TransferChoice;
+  }
+}
+
+int defaultPrimariesChoiceForTransfer(int transferChoice) {
+  switch (transferChoice) {
+    case kGamma22TransferChoice: return kRec709PrimariesChoice;
+    case kSrgbTransferChoice: return kSrgbPrimariesChoice;
+    case kProPhotoTransferChoice: return kProPhotoPrimariesChoice;
+    case kGamma2199TransferChoice: return kAdobeRgbPrimariesChoice;
+    case kGamma26TransferChoice: return kDciP3PrimariesChoice;
+    case kGamma24TransferChoice:
+    default: return kRec709PrimariesChoice;
+  }
+}
+
+spektrafilm::ColorSpace outputPrimariesForChoice(int choice) {
+  switch (choice) {
+    case kDisplayP3PrimariesChoice: return spektrafilm::ColorSpace::DisplayP3;
+    case kProPhotoPrimariesChoice: return spektrafilm::ColorSpace::ProPhotoRgb;
+    case kAdobeRgbPrimariesChoice: return spektrafilm::ColorSpace::AdobeRgb1998;
+    case kDciP3PrimariesChoice: return spektrafilm::ColorSpace::DciP3;
+    case kP3D65PrimariesChoice: return spektrafilm::ColorSpace::LinearP3D65;
+    case kSrgbPrimariesChoice:
+    case kRec709PrimariesChoice:
+    default: return spektrafilm::ColorSpace::LinearRec709;
+  }
+}
+
+spektrafilm::ColorSpace outputTransferForChoice(int choice) {
+  switch (choice) {
+    case kGamma22TransferChoice: return spektrafilm::ColorSpace::Rec709Gamma22;
+    case kSrgbTransferChoice: return spektrafilm::ColorSpace::Srgb;
+    case kProPhotoTransferChoice: return spektrafilm::ColorSpace::ProPhotoRgb;
+    case kGamma2199TransferChoice: return spektrafilm::ColorSpace::AdobeRgb1998;
+    case kGamma26TransferChoice: return spektrafilm::ColorSpace::P3D65Gamma26;
+    case kGamma24TransferChoice:
+    default: return spektrafilm::ColorSpace::Rec709Gamma24;
+  }
+}
+
+spektrafilm::ColorSpace combinedOutputColorSpace(int primariesChoice, int transferChoice) {
+  switch (primariesChoice) {
+    case kSrgbPrimariesChoice: return spektrafilm::ColorSpace::Srgb;
+    case kDisplayP3PrimariesChoice: return spektrafilm::ColorSpace::DisplayP3;
+    case kProPhotoPrimariesChoice: return spektrafilm::ColorSpace::ProPhotoRgb;
+    case kAdobeRgbPrimariesChoice: return spektrafilm::ColorSpace::AdobeRgb1998;
+    case kDciP3PrimariesChoice: return spektrafilm::ColorSpace::DciP3;
+    case kP3D65PrimariesChoice:
+      return transferChoice == kGamma22TransferChoice
+        ? spektrafilm::ColorSpace::P3D65Gamma22
+        : spektrafilm::ColorSpace::P3D65Gamma26;
+    case kRec709PrimariesChoice:
+    default:
+      return transferChoice == kGamma22TransferChoice
+        ? spektrafilm::ColorSpace::Rec709Gamma22
+        : spektrafilm::ColorSpace::Rec709Gamma24;
+  }
+}
+
+std::string normalizedHostColourspace(std::string value) {
+  for (char &c : value) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+  return value;
+}
+
+bool hostColourspaceContains(const std::string &value, const char *token) {
+  return token && value.find(token) != std::string::npos;
+}
+
+std::string timelineClipColourspace(OfxImageClipHandle clip) {
+  OfxPropertySetHandle props = nullptr;
+  if (!clip || !gEffectHost || !gPropHost || gEffectHost->clipGetPropertySet(clip, &props) != kOfxStatOK) {
+    return {};
+  }
+  char *value = nullptr;
+  if (gPropHost->propGetString(props, kOfxImageClipPropColourspace, 0, &value) != kOfxStatOK || !value) {
+    return {};
+  }
+  return value;
+}
+
+std::string timelineColourspaceForOutput(InstanceData *data, const std::string &sourceColourspace) {
+  std::string outputColourspace = timelineClipColourspace(data ? data->outputClip : nullptr);
+  const std::string normalized = normalizedHostColourspace(outputColourspace);
+  if (outputColourspace.empty() || hostColourspaceContains(normalized, "ofxcolourspace_source")) {
+    outputColourspace = sourceColourspace;
+  }
+  return outputColourspace;
+}
+
+bool resolveHostPrimaries(const std::string &colourspace, spektrafilm::ColorSpace &resolved) {
+  const std::string value = normalizedHostColourspace(colourspace);
+  if (value.empty() || hostColourspaceContains(value, "ofx_scene_") || hostColourspaceContains(value, "ofx_display_")) {
+    return false;
+  }
+  if (hostColourspaceContains(value, "aces2065") || hostColourspaceContains(value, "ap0")) {
+    resolved = spektrafilm::ColorSpace::Aces2065_1;
+  } else if (hostColourspaceContains(value, "acescg") || hostColourspaceContains(value, "acescc") ||
+             hostColourspaceContains(value, "ap1")) {
+    resolved = spektrafilm::ColorSpace::AcesCg;
+  } else if ((hostColourspaceContains(value, "arri") || hostColourspaceContains(value, "widegamut")) &&
+             (hostColourspaceContains(value, "logc4") || hostColourspaceContains(value, "wide gamut 4"))) {
+    resolved = spektrafilm::ColorSpace::ArriLogC4;
+  } else if (hostColourspaceContains(value, "arri") || hostColourspaceContains(value, "logc3")) {
+    resolved = spektrafilm::ColorSpace::ArriLogC3Ei800;
+  } else if (hostColourspaceContains(value, "bmd") || hostColourspaceContains(value, "blackmagic")) {
+    resolved = spektrafilm::ColorSpace::BmdFilmWideGamutGen5;
+  } else if (hostColourspaceContains(value, "davinci") || hostColourspaceContains(value, "dwg")) {
+    resolved = spektrafilm::ColorSpace::DavinciIntermediateWideGamut;
+  } else if (hostColourspaceContains(value, "redwide") || hostColourspaceContains(value, "red wide")) {
+    resolved = spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb;
+  } else if (hostColourspaceContains(value, "s-gamut3.cine") || hostColourspaceContains(value, "sgamut3cine")) {
+    resolved = spektrafilm::ColorSpace::SonySLog3SGamut3Cine;
+  } else if (hostColourspaceContains(value, "s-gamut3") || hostColourspaceContains(value, "sgamut3")) {
+    resolved = spektrafilm::ColorSpace::SonySLog3SGamut3;
+  } else if (hostColourspaceContains(value, "canon") || hostColourspaceContains(value, "cinemagamut")) {
+    resolved = spektrafilm::ColorSpace::CanonLog3CinemaGamutD55;
+  } else if (hostColourspaceContains(value, "v-gamut") || hostColourspaceContains(value, "vgamut") ||
+             hostColourspaceContains(value, "panasonic")) {
+    resolved = spektrafilm::ColorSpace::PanasonicVLogVGamut;
+  } else if (hostColourspaceContains(value, "rec2020") || hostColourspaceContains(value, "bt2020")) {
+    resolved = spektrafilm::ColorSpace::LinearRec2020;
+  } else if (hostColourspaceContains(value, "display p3") || hostColourspaceContains(value, "srgb_encoded_p3")) {
+    resolved = spektrafilm::ColorSpace::DisplayP3;
+  } else if (hostColourspaceContains(value, "p3_dci") || hostColourspaceContains(value, "dci-p3") ||
+             hostColourspaceContains(value, "p3-dci")) {
+    resolved = spektrafilm::ColorSpace::DciP3;
+  } else if (hostColourspaceContains(value, "p3")) {
+    resolved = spektrafilm::ColorSpace::LinearP3D65;
+  } else if (hostColourspaceContains(value, "prophoto")) {
+    resolved = spektrafilm::ColorSpace::ProPhotoRgb;
+  } else if (hostColourspaceContains(value, "adobergb") || hostColourspaceContains(value, "adobe rgb")) {
+    resolved = spektrafilm::ColorSpace::AdobeRgb1998;
+  } else if (hostColourspaceContains(value, "rec709") || hostColourspaceContains(value, "bt709") ||
+             hostColourspaceContains(value, "srgb")) {
+    resolved = spektrafilm::ColorSpace::LinearRec709;
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool resolveHostTransfer(const std::string &colourspace, spektrafilm::ColorSpace &resolved) {
+  const std::string value = normalizedHostColourspace(colourspace);
+  if (value.empty()) {
+    return false;
+  }
+  if (hostColourspaceContains(value, "acescct")) {
+    resolved = spektrafilm::ColorSpace::AcesCct;
+  } else if (hostColourspaceContains(value, "acescc")) {
+    resolved = spektrafilm::ColorSpace::AcesCc;
+  } else if (hostColourspaceContains(value, "logc4")) {
+    resolved = spektrafilm::ColorSpace::ArriLogC4;
+  } else if (hostColourspaceContains(value, "logc3")) {
+    resolved = spektrafilm::ColorSpace::ArriLogC3Ei800;
+  } else if (hostColourspaceContains(value, "bmdfilm") || hostColourspaceContains(value, "film gen 5")) {
+    resolved = spektrafilm::ColorSpace::BmdFilmWideGamutGen5;
+  } else if (hostColourspaceContains(value, "davinci") || hostColourspaceContains(value, "intermediate")) {
+    resolved = spektrafilm::ColorSpace::DavinciIntermediateWideGamut;
+  } else if (hostColourspaceContains(value, "log3g10")) {
+    resolved = spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb;
+  } else if (hostColourspaceContains(value, "canonlog2") || hostColourspaceContains(value, "canon log 2")) {
+    resolved = spektrafilm::ColorSpace::CanonLog2CinemaGamutD55;
+  } else if (hostColourspaceContains(value, "canonlog3") || hostColourspaceContains(value, "canon log 3")) {
+    resolved = spektrafilm::ColorSpace::CanonLog3CinemaGamutD55;
+  } else if (hostColourspaceContains(value, "s-log3") || hostColourspaceContains(value, "slog3")) {
+    resolved = spektrafilm::ColorSpace::SonySLog3SGamut3;
+  } else if (hostColourspaceContains(value, "v-log") || hostColourspaceContains(value, "vlog")) {
+    resolved = spektrafilm::ColorSpace::PanasonicVLogVGamut;
+  } else if (hostColourspaceContains(value, "linear") || hostColourspaceContains(value, "lin_") ||
+             hostColourspaceContains(value, "acescg") || hostColourspaceContains(value, "aces2065") ||
+             hostColourspaceContains(value, "ofx_scene_linear")) {
+    resolved = spektrafilm::ColorSpace::LinearRec709;
+  } else if (hostColourspaceContains(value, "srgb")) {
+    resolved = spektrafilm::ColorSpace::Srgb;
+  } else if (hostColourspaceContains(value, "prophoto")) {
+    resolved = spektrafilm::ColorSpace::ProPhotoRgb;
+  } else if (hostColourspaceContains(value, "adobergb") || hostColourspaceContains(value, "adobe rgb")) {
+    resolved = spektrafilm::ColorSpace::AdobeRgb1998;
+  } else if (hostColourspaceContains(value, "gamma 2.6") || hostColourspaceContains(value, "gamma2.6") ||
+             hostColourspaceContains(value, "p3d65_display") || hostColourspaceContains(value, "p3_dci_display")) {
+    resolved = spektrafilm::ColorSpace::P3D65Gamma26;
+  } else if (hostColourspaceContains(value, "gamma 2.2") || hostColourspaceContains(value, "gamma2.2") ||
+             hostColourspaceContains(value, "g22_")) {
+    resolved = spektrafilm::ColorSpace::Rec709Gamma22;
+  } else if (hostColourspaceContains(value, "rec1886") || hostColourspaceContains(value, "gamma 2.4") ||
+             hostColourspaceContains(value, "gamma2.4")) {
+    resolved = spektrafilm::ColorSpace::Rec709Gamma24;
+  } else {
+    return false;
+  }
+  return true;
 }
 
 spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
@@ -2568,32 +2838,64 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
     params.rgbToRawMethod = spektrafilm::RgbToRawMethod::Hanatos2026;
   }
   params.outputRole = outputRoleForFlavor(getIntAtTime(data->outputRole, time, 0));
+  const int inputPrimariesChoice = getIntAtTime(
+    data->inputPrimariesColorSpace,
+    time,
+    kInputArriWideGamut3PrimariesChoice
+  );
+  const int inputTransferChoice = getIntAtTime(
+    data->inputTransferColorSpace,
+    time,
+    kInputArriLogC3TransferChoice
+  );
+  const int outputPrimariesChoice = getIntAtTime(
+    data->outputPrimariesColorSpace,
+    time,
+    kRec709PrimariesChoice
+  );
+  const int outputTransferChoice = getIntAtTime(
+    data->outputTransferColorSpace,
+    time,
+    kGamma24TransferChoice
+  );
   const int inputPrimariesIndex = std::clamp(
-    getIntAtTime(data->inputPrimariesColorSpace, time, 3),
+    inputPrimariesChoice == kReservedRcmChoice
+      ? kInputArriWideGamut3PrimariesChoice - 1
+      : inputPrimariesChoice - 1,
     0,
     static_cast<int>(std::size(kPrimariesColorSpaces) - 1u)
   );
   const int inputTransferIndex = std::clamp(
-    getIntAtTime(data->inputTransferColorSpace, time, 3),
-    0,
-    static_cast<int>(std::size(kTransferColorSpaces) - 1u)
-  );
-  const int outputPrimariesIndex = std::clamp(
-    getIntAtTime(data->outputPrimariesColorSpace, time, 13),
-    0,
-    static_cast<int>(std::size(kPrimariesColorSpaces) - 1u)
-  );
-  const int outputTransferIndex = std::clamp(
-    getIntAtTime(data->outputTransferColorSpace, time, 10),
+    inputTransferChoice == kReservedRcmChoice
+      ? kInputArriLogC3TransferChoice - 1
+      : inputTransferChoice - 1,
     0,
     static_cast<int>(std::size(kTransferColorSpaces) - 1u)
   );
   params.inputPrimariesColorSpace = kPrimariesColorSpaces[inputPrimariesIndex];
   params.inputTransferColorSpace = kTransferColorSpaces[inputTransferIndex];
-  params.outputPrimariesColorSpace = kPrimariesColorSpaces[outputPrimariesIndex];
-  params.outputTransferColorSpace = kTransferColorSpaces[outputTransferIndex];
+  int resolvedOutputPrimariesChoice = outputPrimariesChoice;
+  int resolvedOutputTransferChoice = outputTransferChoice;
+  if (!outputColourPairIsValid(resolvedOutputPrimariesChoice, resolvedOutputTransferChoice)) {
+    if (resolvedOutputPrimariesChoice == kReservedRcmChoice ||
+        resolvedOutputTransferChoice == kReservedRcmChoice) {
+      resolvedOutputPrimariesChoice = kRec709PrimariesChoice;
+      resolvedOutputTransferChoice = kGamma24TransferChoice;
+    } else {
+      resolvedOutputTransferChoice = defaultTransferChoiceForPrimaries(resolvedOutputPrimariesChoice);
+      if (!outputColourPairIsValid(resolvedOutputPrimariesChoice, resolvedOutputTransferChoice)) {
+        resolvedOutputPrimariesChoice = kRec709PrimariesChoice;
+        resolvedOutputTransferChoice = kGamma24TransferChoice;
+      }
+    }
+  }
+  params.outputPrimariesColorSpace = outputPrimariesForChoice(resolvedOutputPrimariesChoice);
+  params.outputTransferColorSpace = outputTransferForChoice(resolvedOutputTransferChoice);
   params.inputColorSpace = params.inputPrimariesColorSpace;
-  params.outputColorSpace = params.outputPrimariesColorSpace;
+  params.outputColorSpace = combinedOutputColorSpace(
+    resolvedOutputPrimariesChoice,
+    resolvedOutputTransferChoice
+  );
   params.scanNegativeInvert = getBoolAtTime(data->scanNegativeInvert, time, false);
   params.hdrPreset = static_cast<spektrafilm::HdrPreset>(getIntAtTime(data->hdrPreset, time, 0));
   params.hdrTransfer = static_cast<spektrafilm::HdrTransfer>(getIntAtTime(data->hdrTransfer, time, 0));
@@ -2932,6 +3234,89 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
     }
   }
   return params;
+}
+
+const char *resolvedPrimariesName(spektrafilm::ColorSpace value) {
+  switch (value) {
+    case spektrafilm::ColorSpace::Aces2065_1: return "ACES AP0";
+    case spektrafilm::ColorSpace::AcesCg:
+    case spektrafilm::ColorSpace::AcesCct:
+    case spektrafilm::ColorSpace::AcesCc: return "ACES AP1";
+    case spektrafilm::ColorSpace::ArriLogC4: return "ARRI Wide Gamut 4";
+    case spektrafilm::ColorSpace::ArriLogC3Ei800: return "ARRI Wide Gamut 3";
+    case spektrafilm::ColorSpace::BmdFilmWideGamutGen5: return "Blackmagic Wide Gamut";
+    case spektrafilm::ColorSpace::DavinciIntermediateWideGamut: return "DaVinci Wide Gamut";
+    case spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb: return "REDWideGamutRGB";
+    case spektrafilm::ColorSpace::SonySLog3SGamut3: return "S-Gamut3";
+    case spektrafilm::ColorSpace::SonySLog3SGamut3Cine: return "S-Gamut3.Cine";
+    case spektrafilm::ColorSpace::CanonLog2CinemaGamutD55:
+    case spektrafilm::ColorSpace::CanonLog3CinemaGamutD55: return "Canon Cinema Gamut D55";
+    case spektrafilm::ColorSpace::PanasonicVLogVGamut: return "V-Gamut";
+    case spektrafilm::ColorSpace::LinearRec2020: return "Rec.2020";
+    case spektrafilm::ColorSpace::LinearP3D65:
+    case spektrafilm::ColorSpace::P3D65Gamma22:
+    case spektrafilm::ColorSpace::P3D65Gamma26: return "P3-D65";
+    case spektrafilm::ColorSpace::DciP3: return "DCI-P3";
+    case spektrafilm::ColorSpace::DisplayP3: return "Display P3";
+    case spektrafilm::ColorSpace::ProPhotoRgb: return "ProPhoto RGB";
+    case spektrafilm::ColorSpace::AdobeRgb1998: return "Adobe RGB (1998)";
+    case spektrafilm::ColorSpace::Srgb:
+    case spektrafilm::ColorSpace::LinearRec709:
+    case spektrafilm::ColorSpace::Rec709Gamma22:
+    case spektrafilm::ColorSpace::Rec709Gamma24: return "Rec.709 / sRGB primaries";
+  }
+  return "unknown";
+}
+
+const char *resolvedTransferName(spektrafilm::ColorSpace value) {
+  switch (value) {
+    case spektrafilm::ColorSpace::ArriLogC4: return "ARRI LogC4";
+    case spektrafilm::ColorSpace::ArriLogC3Ei800: return "ARRI LogC3";
+    case spektrafilm::ColorSpace::BmdFilmWideGamutGen5: return "Blackmagic Film Gen 5";
+    case spektrafilm::ColorSpace::DavinciIntermediateWideGamut: return "DaVinci Intermediate";
+    case spektrafilm::ColorSpace::RedLog3G10RedWideGamutRgb: return "RED Log3G10";
+    case spektrafilm::ColorSpace::SonySLog3SGamut3:
+    case spektrafilm::ColorSpace::SonySLog3SGamut3Cine: return "S-Log3";
+    case spektrafilm::ColorSpace::CanonLog2CinemaGamutD55: return "Canon Log 2";
+    case spektrafilm::ColorSpace::CanonLog3CinemaGamutD55: return "Canon Log 3";
+    case spektrafilm::ColorSpace::PanasonicVLogVGamut: return "V-Log";
+    case spektrafilm::ColorSpace::AcesCct: return "ACEScct";
+    case spektrafilm::ColorSpace::AcesCc: return "ACEScc";
+    case spektrafilm::ColorSpace::Srgb:
+    case spektrafilm::ColorSpace::DisplayP3: return "sRGB";
+    case spektrafilm::ColorSpace::ProPhotoRgb: return "ProPhoto";
+    case spektrafilm::ColorSpace::AdobeRgb1998: return "Adobe RGB Gamma 2.199";
+    case spektrafilm::ColorSpace::P3D65Gamma22:
+    case spektrafilm::ColorSpace::Rec709Gamma22: return "Gamma 2.2";
+    case spektrafilm::ColorSpace::P3D65Gamma26:
+    case spektrafilm::ColorSpace::DciP3: return "Gamma 2.6";
+    case spektrafilm::ColorSpace::Rec709Gamma24: return "Gamma 2.4";
+    case spektrafilm::ColorSpace::Aces2065_1:
+    case spektrafilm::ColorSpace::AcesCg:
+    case spektrafilm::ColorSpace::LinearRec2020:
+    case spektrafilm::ColorSpace::LinearRec709:
+    case spektrafilm::ColorSpace::LinearP3D65: return "Linear";
+  }
+  return "unknown";
+}
+
+std::string timelineResolutionStatus(
+  InstanceData *,
+  const std::string &,
+  const std::string &
+) {
+  return "Input gamut=manual; Input gamma=manual; Output gamut=SDR; Output gamma=SDR";
+}
+
+std::string timelineProcessingPath(const spektrafilm::RenderParams &params) {
+  const char *process = params.process == spektrafilm::ProcessMode::PrintSimulation
+    ? "Print simulation (film/print roll-off active)"
+    : (params.process == spektrafilm::ProcessMode::ScanNegative ? "Scan negative" : "Process negative");
+  const char *output = params.outputRole == spektrafilm::OutputRole::Rcm
+    ? "RCM/ACES encoding"
+    : (params.outputRole == spektrafilm::OutputRole::DisplayHdr ? "Display HDR tone map" : "Display SDR output");
+  return std::string(process) + " -> " + output +
+    (params.colorAdaptation ? "; Color Adaptation ON" : "; Color Adaptation OFF");
 }
 
 bool validStoredKind(ParamValueKind kind) {
@@ -3539,7 +3924,7 @@ bool openMCNexusApp() {
   if (openMacApplicationBundle("/Applications/MCNexus.app")) {
     return true;
   }
-  return openExternalUrl("https://github.com/ciqueira/MCNexus");
+  return openExternalUrl("https://mcnexus.app");
 #elif defined(_WIN32)
   if (launchWindowsExecutableIfExists(L"%ProgramFiles%\\MCNexus\\MCNexus.exe") ||
       launchWindowsExecutableIfExists(L"%ProgramFiles(x86)%\\MCNexus\\MCNexus.exe") ||
@@ -3551,7 +3936,7 @@ bool openMCNexusApp() {
   }
   return openExternalUrl("https://apps.microsoft.com/detail/9n1qqt1xc825?hl=en-US&gl=US");
 #else
-  return openExternalUrl("https://github.com/ciqueira/MCNexus");
+  return openExternalUrl("https://mcnexus.app");
 #endif
 }
 
@@ -4241,6 +4626,7 @@ void updateHostColourDiagnostics(OfxImageEffectHandle effect, InstanceData *data
   const std::string ocioView = readEffectStringProperty(effect, kOfxImageEffectPropOCIOView);
   const std::string sourceColourspace = readClipStringProperty(data->sourceClip, kOfxImageClipPropColourspace);
   const std::string outputColourspace = readClipStringProperty(data->outputClip, kOfxImageClipPropColourspace);
+  const std::string resolvedOutputColourspace = timelineColourspaceForOutput(data, sourceColourspace);
   std::string displayColourspace = readEffectStringProperty(effect, kOfxImageEffectPropDisplayColourspace);
   if (displayColourspace.empty() && (!ocioDisplay.empty() || !ocioView.empty())) {
     displayColourspace = "OCIO display=" + unavailableIfEmpty(ocioDisplay) + ", view=" + unavailableIfEmpty(ocioView);
@@ -4256,6 +4642,16 @@ void updateHostColourDiagnostics(OfxImageEffectHandle effect, InstanceData *data
     data->resolvedUserTimelineInfo,
     resolvedUserTimelineDiagnostic(sourceColourspace, outputColourspace, displayColourspace)
   );
+  const spektrafilm::RenderParams resolvedParams = readParams(data, 0.0);
+  setLabelValue(data->resolvedInputPrimariesInfo, resolvedPrimariesName(resolvedParams.inputPrimariesColorSpace));
+  setLabelValue(data->resolvedInputTransferInfo, resolvedTransferName(resolvedParams.inputTransferColorSpace));
+  setLabelValue(data->resolvedOutputPrimariesInfo, resolvedPrimariesName(resolvedParams.outputPrimariesColorSpace));
+  setLabelValue(data->resolvedOutputTransferInfo, resolvedTransferName(resolvedParams.outputTransferColorSpace));
+  setLabelValue(
+    data->timelineResolutionStatusInfo,
+    timelineResolutionStatus(data, sourceColourspace, resolvedOutputColourspace)
+  );
+  setLabelValue(data->timelineProcessingPathInfo, timelineProcessingPath(resolvedParams));
 }
 
 void setPreferredColourspace(OfxPropertySetHandle outArgs, const char *clipName, int index, const char *colourspace) {
@@ -4264,6 +4660,83 @@ void setPreferredColourspace(OfxPropertySetHandle outArgs, const char *clipName,
   }
   const std::string propertyName = std::string(kOfxImageClipPropPreferredColourspaces) + "_" + clipName;
   gPropHost->propSetString(outArgs, propertyName.c_str(), index, colourspace);
+}
+
+const char *selectedSdrOfxColourspace(const InstanceData *data) {
+  if (!data) {
+    return nullptr;
+  }
+  const int primariesChoice = getIntValue(data->outputPrimariesColorSpace, kRec709PrimariesChoice);
+  const int transferChoice = getIntValue(data->outputTransferColorSpace, kGamma24TransferChoice);
+  if (!outputColourPairIsValid(primariesChoice, transferChoice) ||
+      primariesChoice == kReservedRcmChoice) {
+    return nullptr;
+  }
+  if (primariesChoice == kRec709PrimariesChoice && transferChoice == kGamma24TransferChoice) {
+    return kOfxColourspaceRec1886Rec709Display;
+  }
+  if (primariesChoice == kSrgbPrimariesChoice) {
+    return kOfxColourspaceSrgbDisplay;
+  }
+  if (primariesChoice == kDisplayP3PrimariesChoice) {
+    return kOfxColourspaceDisplayp3Display;
+  }
+  if (primariesChoice == kDciP3PrimariesChoice) {
+    return kOfxColourspaceP3DciDisplay;
+  }
+  if (primariesChoice == kP3D65PrimariesChoice && transferChoice == kGamma26TransferChoice) {
+    return kOfxColourspaceP3d65Display;
+  }
+  return kOfxColourspaceOfxDisplaySdr;
+}
+
+void syncSdrColourSelections(InstanceData *data, const char *changedName = nullptr) {
+  if (!data) {
+    return;
+  }
+  if (data->inputPrimariesColorSpace &&
+      getIntValue(data->inputPrimariesColorSpace, kInputArriWideGamut3PrimariesChoice) == kReservedRcmChoice) {
+    gParamHost->paramSetValue(data->inputPrimariesColorSpace, kInputArriWideGamut3PrimariesChoice);
+  }
+  if (data->inputTransferColorSpace &&
+      getIntValue(data->inputTransferColorSpace, kInputArriLogC3TransferChoice) == kReservedRcmChoice) {
+    gParamHost->paramSetValue(data->inputTransferColorSpace, kInputArriLogC3TransferChoice);
+  }
+  int primariesChoice = getIntValue(data->outputPrimariesColorSpace, kRec709PrimariesChoice);
+  int transferChoice = getIntValue(data->outputTransferColorSpace, kGamma24TransferChoice);
+  const bool primariesChanged = changedName && std::strcmp(changedName, "outputPrimariesColorSpace") == 0;
+  const bool transferChanged = changedName && std::strcmp(changedName, "outputTransferColorSpace") == 0;
+
+  if (primariesChoice <= kReservedRcmChoice || primariesChoice > kP3D65PrimariesChoice) {
+    primariesChoice = kRec709PrimariesChoice;
+  }
+  if (transferChoice <= kReservedRcmChoice || transferChoice > kGamma26TransferChoice) {
+    transferChoice = kGamma24TransferChoice;
+  }
+
+  if (!outputColourPairIsValid(primariesChoice, transferChoice)) {
+    if (primariesChanged) {
+      transferChoice = defaultTransferChoiceForPrimaries(primariesChoice);
+    } else if (transferChanged) {
+      primariesChoice = defaultPrimariesChoiceForTransfer(transferChoice);
+    } else {
+      transferChoice = defaultTransferChoiceForPrimaries(primariesChoice);
+    }
+  }
+
+  if (data->outputPrimariesColorSpace &&
+      getIntValue(data->outputPrimariesColorSpace, primariesChoice) != primariesChoice) {
+    gParamHost->paramSetValue(data->outputPrimariesColorSpace, primariesChoice);
+  }
+  if (data->outputTransferColorSpace &&
+      getIntValue(data->outputTransferColorSpace, transferChoice) != transferChoice) {
+    gParamHost->paramSetValue(data->outputTransferColorSpace, transferChoice);
+  }
+
+  const int desiredRole = static_cast<int>(spektrafilm::OutputRole::DisplaySdr);
+  if (data->outputRole && getIntValue(data->outputRole, desiredRole) != desiredRole) {
+    gParamHost->paramSetValue(data->outputRole, desiredRole);
+  }
 }
 
 OfxStatus getClipPreferences(OfxImageEffectHandle effect, OfxPropertySetHandle outArgs) {
@@ -4297,6 +4770,18 @@ OfxStatus getClipPreferences(OfxImageEffectHandle effect, OfxPropertySetHandle o
       setLabelValue(data->hostClipPreferenceRequestInfo, "Raw");
       setPreferredColourspace(outArgs, kOfxImageEffectSimpleSourceClipName, 0, kOfxColourspaceRaw);
       return kOfxStatOK;
+    case 5:
+      setLabelValue(data->hostClipPreferenceRequestInfo, kOfxColourspaceArriLogc3Ei800);
+      setPreferredColourspace(outArgs, kOfxImageEffectSimpleSourceClipName, 0, kOfxColourspaceArriLogc3Ei800);
+      return kOfxStatOK;
+    case 6:
+      setLabelValue(data->hostClipPreferenceRequestInfo, kOfxColourspaceDavinciIntermediateWidegamut);
+      setPreferredColourspace(outArgs, kOfxImageEffectSimpleSourceClipName, 0, kOfxColourspaceDavinciIntermediateWidegamut);
+      return kOfxStatOK;
+    case 7:
+      setLabelValue(data->hostClipPreferenceRequestInfo, kOfxColourspaceACEScct);
+      setPreferredColourspace(outArgs, kOfxImageEffectSimpleSourceClipName, 0, kOfxColourspaceACEScct);
+      return kOfxStatOK;
     default:
       setLabelValue(data->hostClipPreferenceRequestInfo, "ReplyDefault");
       return kOfxStatReplyDefault;
@@ -4327,6 +4812,10 @@ OfxStatus getOutputColourspace(OfxImageEffectHandle effect, OfxPropertySetHandle
       outputColourspace = kOfxColourspaceRaw;
       break;
     default:
+      if (const char *sdrColourspace = selectedSdrOfxColourspace(data)) {
+        outputColourspace = sdrColourspace;
+        break;
+      }
       setLabelValue(data->hostOutputColourspaceReplyInfo, "ReplyDefault");
       return kOfxStatReplyDefault;
   }
@@ -4498,7 +4987,7 @@ const char *outputRoleName(spektrafilm::OutputRole role) {
     case spektrafilm::OutputRole::DisplayHdr:
       return "Display Out HDR";
     case spektrafilm::OutputRole::Rcm:
-      return "RCM/ACES (Beta)";
+      return "RCM disabled";
     case spektrafilm::OutputRole::DisplaySdr:
     default:
       return "Display Out SDR";
@@ -5764,6 +6253,7 @@ OfxStatus createInstance(OfxImageEffectHandle effect) {
   cacheParam(paramSet, "scannedNegativeGroup", data->scannedNegativeGroup);
   cacheParam(paramSet, "couplerGroup", data->couplerGroup);
   cacheParam(paramSet, "calibrationGroup", data->calibrationGroup);
+  cacheParam(paramSet, "timelineDebugGroup", data->timelineDebugGroup);
   cacheParam(paramSet, "calibrationBuildInfo", data->calibrationBuildInfo);
   cacheParam(paramSet, "activeCalibrationInfo", data->activeCalibrationInfo);
   cacheParam(paramSet, "hostColourManagementInfo", data->hostColourManagementInfo);
@@ -5773,6 +6263,12 @@ OfxStatus createInstance(OfxImageEffectHandle effect) {
   cacheParam(paramSet, "outputColourspaceInfo", data->outputColourspaceInfo);
   cacheParam(paramSet, "displayColourspaceInfo", data->displayColourspaceInfo);
   cacheParam(paramSet, "resolvedUserTimelineInfo", data->resolvedUserTimelineInfo);
+  cacheParam(paramSet, "resolvedInputPrimariesInfo", data->resolvedInputPrimariesInfo);
+  cacheParam(paramSet, "resolvedInputTransferInfo", data->resolvedInputTransferInfo);
+  cacheParam(paramSet, "resolvedOutputPrimariesInfo", data->resolvedOutputPrimariesInfo);
+  cacheParam(paramSet, "resolvedOutputTransferInfo", data->resolvedOutputTransferInfo);
+  cacheParam(paramSet, "timelineResolutionStatusInfo", data->timelineResolutionStatusInfo);
+  cacheParam(paramSet, "timelineProcessingPathInfo", data->timelineProcessingPathInfo);
   cacheParam(paramSet, "hostClipPreferencesCallInfo", data->hostClipPreferencesCallInfo);
   cacheParam(paramSet, "hostOutputColourspaceCallInfo", data->hostOutputColourspaceCallInfo);
   cacheParam(paramSet, "hostClipPreferenceRequestInfo", data->hostClipPreferenceRequestInfo);
@@ -6002,6 +6498,7 @@ OfxStatus createInstance(OfxImageEffectHandle effect) {
 
   rememberCurrentPrinterLights(data);
   rememberCurrentCreativePrinterLights(data);
+  syncSdrColourSelections(data);
   updateHostColourActionCounters(data);
   updateHostColourDiagnostics(effect, data);
   syncConditionalParamVisibility(data);
@@ -6185,6 +6682,7 @@ OfxStatus instanceChanged(OfxImageEffectHandle effect, OfxPropertySetHandle inAr
         true
       );
       gParamHost->paramEditEnd(paramSet);
+      syncSdrColourSelections(data);
       syncConditionalParamVisibility(data);
       return kOfxStatOK;
     }
@@ -6258,6 +6756,7 @@ OfxStatus instanceChanged(OfxImageEffectHandle effect, OfxPropertySetHandle inAr
         gParamHost->paramSetValue(data->presetName, displayName.c_str());
       }
       gParamHost->paramEditEnd(paramSet);
+      syncSdrColourSelections(data);
       syncConditionalParamVisibility(data);
       refreshPresetDropdown(data, entries[static_cast<size_t>(selected)].path);
       showMessage(effect, kOfxMessageMessage, "lookfilmlabPreset", "LookFilmLab preset loaded: " + (displayName.empty() ? entries[static_cast<size_t>(selected)].displayName : displayName));
@@ -6296,11 +6795,21 @@ OfxStatus instanceChanged(OfxImageEffectHandle effect, OfxPropertySetHandle inAr
       applyDirStockCalibration(data, false);
     }
     gParamHost->paramEditEnd(paramSet);
+    syncSdrColourSelections(data);
     syncConditionalParamVisibility(data);
     showMessage(effect, kOfxMessageMessage, "lookfilmlabDefaults", "LookFilmLab factory defaults restored.");
     return kOfxStatOK;
   }
 
+  const bool colourSelectionChanged = changedName && (
+    std::strcmp(changedName, "inputPrimariesColorSpace") == 0 ||
+    std::strcmp(changedName, "inputTransferColorSpace") == 0 ||
+    std::strcmp(changedName, "outputPrimariesColorSpace") == 0 ||
+    std::strcmp(changedName, "outputTransferColorSpace") == 0
+  );
+  if (colourSelectionChanged) {
+    syncSdrColourSelections(data, changedName);
+  }
   syncConditionalParamVisibility(data);
   if (syncProductionCreativePrinterLights(data, changedName) == kOfxStatOK) {
     return kOfxStatOK;
@@ -6932,6 +7441,7 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
   defineGroup(paramSet, "printGroup", "Print", true);
   defineGroup(paramSet, "couplerGroup", "DIR Couplers", false);
   defineGroup(paramSet, "calibrationGroup", "Calibration", false);
+  defineGroup(paramSet, "timelineDebugGroup", "TEMP - Colour Management Debug", true);
   defineGroup(paramSet, "grainGroup", "Grain", true);
   defineGroup(paramSet, "grainSynthesisGroup", "Grain Synthesis", false);
   defineGroup(paramSet, "halationGroup", "Halation", false);
@@ -7007,6 +7517,7 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     "Rec.709 / Gamma 2.4"
   };
   const char *primariesColorSpaces[] = {
+    "Reserved (RCM disabled)",
     "ACES2065-1",
     "ACEScg",
     "Adobe RGB (1998)",
@@ -7028,6 +7539,7 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     "V-Gamut"
   };
   const char *transferColorSpaces[] = {
+    "Reserved (RCM disabled)",
     "ACEScc",
     "ACEScct",
     "Adobe RGB Gamma 2.199",
@@ -7047,15 +7559,34 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     "sRGB",
     "V-Log"
   };
+  const char *outputPrimariesColorSpaces[] = {
+    "Reserved (RCM disabled)",
+    "Rec.709",
+    "sRGB",
+    "Display P3",
+    "ProPhoto RGB",
+    "Adobe RGB (1998)",
+    "DCI-P3",
+    "P3-D65"
+  };
+  const char *outputTransferColorSpaces[] = {
+    "Reserved (RCM disabled)",
+    "Gamma 2.4",
+    "Gamma 2.2",
+    "sRGB",
+    "ProPhoto",
+    "Gamma 2.199",
+    "Gamma 2.6"
+  };
   defineChoice(paramSet, "inputColorSpace", "Legacy Input Color Space", colorSpaces, static_cast<int>(sizeof(colorSpaces) / sizeof(colorSpaces[0])), 1, "colorGroup");
-  defineChoice(paramSet, "inputPrimariesColorSpace", "Input Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 3, "colorGroup");
-  defineChoice(paramSet, "inputTransferColorSpace", "Input Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 3, "colorGroup");
+  defineChoice(paramSet, "inputPrimariesColorSpace", "Input Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), kInputArriWideGamut3PrimariesChoice, "colorGroup");
+  defineChoice(paramSet, "inputTransferColorSpace", "Input Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), kInputArriLogC3TransferChoice, "colorGroup");
   defineChoice(paramSet, "rcmInputColorSpace", "Input Color Space", rcmInputColorSpaces, static_cast<int>(sizeof(rcmInputColorSpaces) / sizeof(rcmInputColorSpaces[0])), 0, "colorGroup");
-  const char *outputRoles[] = {"Display Out SDR", "Display Out HDR", "RCM/ACES (Beta)"};
+  const char *outputRoles[] = {"Display Out SDR", "Display Out HDR", "Reserved (RCM disabled)"};
   defineChoice(paramSet, "outputRole", "Output Role", outputRoles, outputRoleOptionCountForFlavor(), 0, "colorGroup");
   defineChoice(paramSet, "sdrOutputColorSpace", "Legacy Output Color Space", sdrOutputColorSpaces, static_cast<int>(sizeof(sdrOutputColorSpaces) / sizeof(sdrOutputColorSpaces[0])), 8, "colorGroup");
-  defineChoice(paramSet, "outputPrimariesColorSpace", "Output Color Space", primariesColorSpaces, static_cast<int>(sizeof(primariesColorSpaces) / sizeof(primariesColorSpaces[0])), 13, "colorGroup");
-  defineChoice(paramSet, "outputTransferColorSpace", "Output Gamma", transferColorSpaces, static_cast<int>(sizeof(transferColorSpaces) / sizeof(transferColorSpaces[0])), 10, "colorGroup");
+  defineChoice(paramSet, "outputPrimariesColorSpace", "Output Color Space", outputPrimariesColorSpaces, static_cast<int>(sizeof(outputPrimariesColorSpaces) / sizeof(outputPrimariesColorSpaces[0])), 1, "colorGroup");
+  defineChoice(paramSet, "outputTransferColorSpace", "Output Gamma", outputTransferColorSpaces, static_cast<int>(sizeof(outputTransferColorSpaces) / sizeof(outputTransferColorSpaces[0])), 1, "colorGroup");
   defineChoice(paramSet, "sceneOutputColorSpace", "Output Color Space", sceneOutputColorSpaces, static_cast<int>(sizeof(sceneOutputColorSpaces) / sizeof(sceneOutputColorSpaces[0])), 0, "colorGroup");
   const char *hdrPresets[] = {"PQ 1000", "PQ 4000", "HLG 1000", "Custom"};
   defineChoice(paramSet, "hdrPreset", "HDR Preset", hdrPresets, 4, 0, "colorGroup");
@@ -7341,23 +7872,38 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     activeProductionCalibrationPath().string().c_str(),
     "calibrationGroup"
   );
-  defineLabel(paramSet, "hostColourManagementInfo", "Host Colour Management:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "colourManagementConfigInfo", "Colour Config:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "ocioConfigInfo", "OCIO Config:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "sourceColourspaceInfo", "Source Colourspace:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "outputColourspaceInfo", "Output Colourspace:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "displayColourspaceInfo", "Display Colourspace:", "unavailable", "calibrationGroup");
-  defineLabel(paramSet, "resolvedUserTimelineInfo", "Resolved User Timeline:", "not resolved", "calibrationGroup");
-  defineLabel(paramSet, "hostClipPreferencesCallInfo", "GetClipPreferences Calls:", "0", "calibrationGroup");
-  defineLabel(paramSet, "hostOutputColourspaceCallInfo", "GetOutputColourspace Calls:", "0", "calibrationGroup");
-  defineLabel(paramSet, "hostClipPreferenceRequestInfo", "Last Clip Preference Request:", "not requested", "calibrationGroup");
-  defineLabel(paramSet, "hostOutputPreferredRequestInfo", "Host Output Preferred Request:", "not requested", "calibrationGroup");
-  defineLabel(paramSet, "hostOutputColourspaceReplyInfo", "Last Output Colourspace Reply:", "not requested", "calibrationGroup");
-  const char *hostClipPreferenceModes[] = {"No Preference", "Scene Linear", "Scene Log", "SDR Display", "Raw"};
-  defineChoice(paramSet, "hostClipPreferenceMode", "Host Clip Preference", hostClipPreferenceModes, 5, 0, "calibrationGroup");
+  defineLabel(paramSet, "hostColourManagementInfo", "Host CM style:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "colourManagementConfigInfo", "Host colour config:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "ocioConfigInfo", "Host OCIO config:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "sourceColourspaceInfo", "RAW source colourspace:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "outputColourspaceInfo", "RAW output colourspace:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "displayColourspaceInfo", "RAW display colourspace:", "unavailable", "timelineDebugGroup");
+  defineLabel(paramSet, "resolvedUserTimelineInfo", "Host summary:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "resolvedInputPrimariesInfo", "ENGINE input gamut:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "resolvedInputTransferInfo", "ENGINE input gamma:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "resolvedOutputPrimariesInfo", "ENGINE output gamut:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "resolvedOutputTransferInfo", "ENGINE output gamma:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "timelineResolutionStatusInfo", "Resolution status:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "timelineProcessingPathInfo", "Processing path:", "not resolved", "timelineDebugGroup");
+  defineLabel(paramSet, "hostClipPreferencesCallInfo", "GetClipPreferences calls:", "0", "timelineDebugGroup");
+  defineLabel(paramSet, "hostOutputColourspaceCallInfo", "GetOutputColourspace calls:", "0", "timelineDebugGroup");
+  defineLabel(paramSet, "hostClipPreferenceRequestInfo", "Last input preference:", "not requested", "timelineDebugGroup");
+  defineLabel(paramSet, "hostOutputPreferredRequestInfo", "Host output preference:", "not requested", "timelineDebugGroup");
+  defineLabel(paramSet, "hostOutputColourspaceReplyInfo", "Plugin output reply:", "not requested", "timelineDebugGroup");
+  const char *hostClipPreferenceModes[] = {
+    "No Preference",
+    "Scene Linear",
+    "Scene Log",
+    "SDR Display",
+    "Raw",
+    "Exact ARRI LogC3",
+    "Exact DaVinci Intermediate",
+    "Exact ACEScct",
+  };
+  defineChoice(paramSet, "hostClipPreferenceMode", "Host Clip Preference", hostClipPreferenceModes, 8, 0, "timelineDebugGroup");
   const char *hostOutputColourspaceModes[] = {"Reply Default", "Match Source", "Scene Linear", "Raw"};
-  defineChoice(paramSet, "hostOutputColourspaceMode", "Host Output Colourspace", hostOutputColourspaceModes, 4, 0, "calibrationGroup");
-  definePushButton(paramSet, "refreshHostColourDiagnostics", "Refresh Host Colour Diagnostics", "calibrationGroup");
+  defineChoice(paramSet, "hostOutputColourspaceMode", "Host Output Colourspace", hostOutputColourspaceModes, 4, 0, "timelineDebugGroup");
+  definePushButton(paramSet, "refreshHostColourDiagnostics", "Refresh Timeline Debug", "timelineDebugGroup");
   definePushButton(paramSet, "saveGlobalCalibration", "Save Global Calibration", "calibrationGroup");
   definePushButton(paramSet, "saveNegativeCalibration", "Save Negative Calibration", "calibrationGroup");
   definePushButton(paramSet, "savePrintCalibration", "Save Print Calibration", "calibrationGroup");
@@ -7407,10 +7953,17 @@ OfxStatus describe(OfxImageEffectHandle effect) {
   gPropHost->propSetString(props, kOfxImageEffectPropSupportedContexts, 0, kOfxImageEffectContextFilter);
   gPropHost->propSetString(props, kOfxImageEffectPropSupportedPixelDepths, 0, kOfxBitDepthHalf);
   gPropHost->propSetString(props, kOfxImageEffectPropSupportedPixelDepths, 1, kOfxBitDepthFloat);
-  gPropHost->propSetString(props, kOfxImageEffectPropColourManagementStyle, 0, kOfxImageEffectColourManagementCore);
+  // Full negotiation lets Resolve report its exact RCM/timeline working space
+  // (for example DaVinci Wide Gamut / Intermediate) instead of reducing it to
+  // a generic scene-linear or scene-log family that cannot identify gamut.
+  gPropHost->propSetString(props, kOfxImageEffectPropColourManagementStyle, 0, kOfxImageEffectColourManagementFull);
   gPropHost->propSetString(props, kOfxImageEffectPropColourManagementAvailableConfigs, 0, kOfxConfigIdentifier);
   gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 0, "hostClipPreferenceMode");
   gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 1, "hostOutputColourspaceMode");
+  gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 2, "inputPrimariesColorSpace");
+  gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 3, "inputTransferColorSpace");
+  gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 4, "outputPrimariesColorSpace");
+  gPropHost->propSetString(props, kOfxImageEffectPropClipPreferencesSlaveParam, 5, "outputTransferColorSpace");
   gPropHost->propSetInt(props, kOfxImageEffectPropSupportsMultipleClipDepths, 0, 0);
   gPropHost->propSetInt(props, kOfxImageEffectPropSupportsTiles, 0, 0);
   gPropHost->propSetInt(props, kOfxImageEffectPropTemporalClipAccess, 0, 0);
