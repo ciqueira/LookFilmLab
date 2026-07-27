@@ -21,7 +21,10 @@ LookFilmLab independent fork/modification
 Each public binary release should include:
 
 ```text
-MCLookFilmLab.ofx.bundle
+MCLookFilmLabCINE.ofx.bundle
+MCLookFilmLabPHOTO.ofx.bundle
+MCLookFilmLabSCAN.ofx.bundle
+MCLookFilmLabGRAIN.ofx.bundle
 LICENSE.txt or GPL-3.0.txt
 MODIFICATIONS.md
 DISTRIBUTION.md
@@ -40,7 +43,7 @@ that binary.
 Recommended release tag format:
 
 ```text
-lookfilmlab-v0.1.1
+lookfilmlab-v0.1.2
 ```
 
 Recommended release note:
@@ -73,10 +76,14 @@ cmake -S . -B build-calibration \
 cmake --build build-calibration --target spektrafilm
 ```
 
-The internal CMake target remains `spektrafilm`; the public bundle artifact is:
+The aggregate CMake target remains `spektrafilm`; the public bundle artifacts
+are:
 
 ```text
-MCLookFilmLab.ofx.bundle
+MCLookFilmLabCINE.ofx.bundle
+MCLookFilmLabPHOTO.ofx.bundle
+MCLookFilmLabSCAN.ofx.bundle
+MCLookFilmLabGRAIN.ofx.bundle
 ```
 
 For calibration work, the plugin writes the user's active working master to:
@@ -101,14 +108,14 @@ so the Production bundle contains a frozen copy.
 
 ## Public host identity
 
-Expected OpenFX host display:
+Expected GRAIN OpenFX host display:
 
 ```text
-MC Plugins > LookFilmLab v0.1.1
+MC Plugins > Look Film Lab GRAIN v0.1.2
 ```
 
 Expected identifier:
 
 ```text
-com.MCLookFilmLab
+com.mclookfilmlab.grain
 ```

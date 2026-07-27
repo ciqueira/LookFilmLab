@@ -58,6 +58,10 @@ VERSION
 
 - Added Production and Calibration build modes for the Pro workflow.
 - Reduced the Production UI to approved public controls.
+- Added the standalone `Look Film Lab GRAIN` product
+  (`com.mclookfilmlab.grain`) with a neutral grain-only Metal/Vulkan path,
+  a fixed Kodak Vision3 5219 500T density reference, calibrated grain strength,
+  and same-space output.
 - Added Calibration workflow for saving and loading an active production
   calibration master.
 - Added support for embedding the active calibration into the Production

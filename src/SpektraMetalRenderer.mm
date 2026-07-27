@@ -2726,6 +2726,8 @@ struct MetalRenderer::Impl {
   id<MTLComputePipelineState> dirRedevelopPipeline = nil;
   id<MTLComputePipelineState> previewGrainFromDensityPipeline = nil;
   id<MTLComputePipelineState> productionGrainLayersFromDensityPipeline = nil;
+  id<MTLComputePipelineState> neutralGrainDeltaPipeline = nil;
+  id<MTLComputePipelineState> neutralGrainDecodePipeline = nil;
   id<MTLComputePipelineState> grainLayerBlurXPipeline = nil;
   id<MTLComputePipelineState> grainLayerBlurYPipeline = nil;
   id<MTLComputePipelineState> grainMicroSourcePipeline = nil;
@@ -3643,6 +3645,8 @@ struct MetalRenderer::Impl {
       dirRedevelopPipeline = makePipeline(@"spektrafilm_dir_redevelop");
       previewGrainFromDensityPipeline = makePipeline(@"spektrafilm_preview_grain_from_density");
       productionGrainLayersFromDensityPipeline = makePipeline(@"spektrafilm_production_grain_layers_from_density");
+      neutralGrainDeltaPipeline = makePipeline(@"spektrafilm_neutral_grain_delta");
+      neutralGrainDecodePipeline = makePipeline(@"spektrafilm_neutral_grain_decode");
       grainLayerBlurXPipeline = makePipeline(@"spektrafilm_grain_layer_blur_x");
       grainLayerBlurYPipeline = makePipeline(@"spektrafilm_grain_layer_blur_y");
       grainMicroSourcePipeline = makePipeline(@"spektrafilm_grain_microstructure_source");
@@ -3724,6 +3728,7 @@ struct MetalRenderer::Impl {
           !dirTailBlurXPipeline || !dirTailBlurYAccumulatePipeline || !dirTailMpsAccumulatePipeline ||
           !dirRedevelopPipeline ||
           !previewGrainFromDensityPipeline || !productionGrainLayersFromDensityPipeline ||
+          !neutralGrainDeltaPipeline || !neutralGrainDecodePipeline ||
           !grainLayerBlurXPipeline || !grainLayerBlurYPipeline ||
           !grainMicroSourcePipeline || !grainMicroBlurXPipeline || !grainMicroBlurYPipeline || !grainResolveDensityPipeline ||
           !grainDensityBlurXPipeline || !grainDensityBlurYPipeline || !grainApplyControlsPipeline ||
@@ -3827,6 +3832,7 @@ bool MetalRenderer::isAvailable() const {
     impl_->dirTailBlurXPipeline && impl_->dirTailBlurYAccumulatePipeline &&
     impl_->dirTailMpsAccumulatePipeline && impl_->dirRedevelopPipeline &&
     impl_->previewGrainFromDensityPipeline && impl_->productionGrainLayersFromDensityPipeline &&
+    impl_->neutralGrainDeltaPipeline && impl_->neutralGrainDecodePipeline &&
     impl_->grainLayerBlurXPipeline && impl_->grainLayerBlurYPipeline &&
     impl_->grainMicroSourcePipeline && impl_->grainMicroBlurXPipeline && impl_->grainMicroBlurYPipeline &&
     impl_->grainResolveDensityPipeline && impl_->grainDensityBlurXPipeline && impl_->grainDensityBlurYPipeline &&
@@ -4026,6 +4032,8 @@ bool MetalRenderer::render(
       finalOutput && params.process == ProcessMode::ScanNegative;
     const bool finalProcessNegative =
       finalOutput && params.process == ProcessMode::ProcessNegative;
+    const bool finalGrainOnly =
+      finalOutput && params.process == ProcessMode::GrainOnly;
     const bool scannedNegativePrintBypass =
       params.process == ProcessMode::PrintSimulation &&
       params.printSource == PrintSourceMode::ScannedNegativeBypass;
@@ -4046,7 +4054,8 @@ bool MetalRenderer::render(
       densityWithGrainOutput ||
       (printStageOutput && !scannedNegativePrintBypass) ||
       (finalPrintSimulation && !scannedNegativePrintBypass) ||
-      finalScanNegative;
+      finalScanNegative ||
+      finalGrainOnly;
     const bool needsHalationLogRawPath = true;
     const bool halationScatterPath =
       params.halationEnabled &&
@@ -4076,7 +4085,7 @@ bool MetalRenderer::render(
       params.grainEnabled &&
       params.grainModel == GrainModel::Production &&
       (densityWithGrainOutput || (printStageOutput && !scannedNegativePrintBypass) ||
-       (finalPrintSimulation && !scannedNegativePrintBypass) || finalScanNegative);
+       (finalPrintSimulation && !scannedNegativePrintBypass) || finalScanNegative || finalGrainOnly);
     const bool grainSynthesisPath =
       params.grainEnabled &&
       params.grainModel == GrainModel::GrainSynthesis &&
@@ -4377,10 +4386,13 @@ bool MetalRenderer::render(
     id<MTLBuffer> grainMicroBufferA = (productionGrainPath || grainSynthesisPath) ? impl_->gpuScratchBuffer(bufferBytes, "grain micro A") : nil;
     id<MTLBuffer> grainMicroBufferB = grainMicroBlurPath ? impl_->gpuScratchBuffer(bufferBytes, "grain micro B") : nil;
     id<MTLBuffer> grainDensityBufferA = (productionGrainPath || grainSynthesisPath) ? impl_->gpuScratchBuffer(bufferBytes, "grain density A") : nil;
-    id<MTLBuffer> grainDensityBufferB = ((productionGrainPath || grainSynthesisPath) && (grainFinalBlurPath || grainControlsPath))
+    id<MTLBuffer> grainDensityBufferB = ((productionGrainPath || grainSynthesisPath) &&
+      (grainFinalBlurPath || grainControlsPath || finalGrainOnly))
       ? impl_->gpuScratchBuffer(bufferBytes, "grain density B")
       : nil;
-    id<MTLBuffer> grainBaseDensityBuffer = grainControlsPath ? impl_->gpuScratchBuffer(bufferBytes, "grain base density") : nil;
+    id<MTLBuffer> grainBaseDensityBuffer = (grainControlsPath || finalGrainOnly)
+      ? impl_->gpuScratchBuffer(bufferBytes, "grain base density")
+      : nil;
     id<MTLBuffer> grainSynthesisTargetHalfBuffer = halfGrainSynthesisTargetPath
       ? impl_->gpuScratchBuffer(static_cast<NSUInteger>(width) * static_cast<NSUInteger>(height) *
           kGrainSynthesisComponentCount * sizeof(uint16_t), "grain synthesis target half")
@@ -4409,7 +4421,7 @@ bool MetalRenderer::render(
     }
     if (productionGrainPath && (!grainLayerBufferA || (grainLayerBlurPath && !grainLayerBufferB) ||
         !grainMicroBufferA || (grainMicroBlurPath && !grainMicroBufferB) ||
-        !grainDensityBufferA || ((grainFinalBlurPath || grainControlsPath) && !grainDensityBufferB))) {
+        !grainDensityBufferA || ((grainFinalBlurPath || grainControlsPath || finalGrainOnly) && !grainDensityBufferB))) {
       impl_->lastError = "Unable to allocate production grain Metal buffers.";
       return false;
     }
@@ -4419,7 +4431,7 @@ bool MetalRenderer::render(
       impl_->lastError = "Unable to allocate grain synthesis Metal buffers.";
       return false;
     }
-    if (grainControlsPath && !grainBaseDensityBuffer) {
+    if ((grainControlsPath || finalGrainOnly) && !grainBaseDensityBuffer) {
       impl_->lastError = "Unable to allocate grain controls Metal buffers.";
       return false;
     }
@@ -5268,6 +5280,32 @@ bool MetalRenderer::render(
       return blurYBuffer;
     };
 
+    auto encodeBlurGrainDelta = [&](id<MTLBuffer> deltaBuffer) -> id<MTLBuffer> {
+      if (!grainFinalBlurPath) {
+        return deltaBuffer;
+      }
+      id<MTLBuffer> blurXBuffer = deltaBuffer == grainDensityBufferA ? grainDensityBufferB : grainDensityBufferA;
+      id<MTLBuffer> blurYBuffer = blurXBuffer == grainDensityBufferA ? grainDensityBufferB : grainDensityBufferA;
+
+      [encoder setComputePipelineState:impl_->grainDensityBlurXPipeline];
+      [encoder setBuffer:deltaBuffer offset:0 atIndex:0];
+      [encoder setBuffer:blurXBuffer offset:0 atIndex:1];
+      [encoder setBuffer:paramBuffer offset:0 atIndex:2];
+      [encoder setBytes:dims length:sizeof(dims) atIndex:3];
+      [encoder setBytes:&grainBlurRecurrenceFlag length:sizeof(grainBlurRecurrenceFlag) atIndex:4];
+      dispatch2D(impl_->grainDensityBlurXPipeline);
+
+      [encoder setComputePipelineState:impl_->grainDensityBlurYPipeline];
+      [encoder setBuffer:blurXBuffer offset:0 atIndex:0];
+      [encoder setBuffer:blurYBuffer offset:0 atIndex:1];
+      [encoder setBuffer:paramBuffer offset:0 atIndex:2];
+      [encoder setBytes:dims length:sizeof(dims) atIndex:3];
+      [encoder setBytes:&grainBlurRecurrenceFlag length:sizeof(grainBlurRecurrenceFlag) atIndex:4];
+      dispatch2D(impl_->grainDensityBlurYPipeline);
+
+      return blurYBuffer;
+    };
+
     auto encodeGrainLayerBlur = [&]() {
       if (grainLayerBlurPath) {
         [encoder setComputePipelineState:impl_->grainLayerBlurXPipeline];
@@ -5984,7 +6022,65 @@ bool MetalRenderer::render(
       }
     };
 
-    if (finalProcessNegative) {
+    if (finalGrainOnly) {
+      if (params.grainAmount <= 1.0e-6f) {
+        encodeCopyBufferToDestination(renderSourceBuffer);
+      } else {
+        [encoder setComputePipelineState:impl_->halationRawExposurePipeline];
+        [encoder setBuffer:renderSourceBuffer offset:0 atIndex:0];
+        [encoder setBuffer:grainDensityBufferA offset:0 atIndex:1];
+        [encoder setBuffer:paramBuffer offset:0 atIndex:2];
+        [encoder setBytes:dims length:sizeof(dims) atIndex:3];
+        [encoder setBuffer:spectralInfoBuffer offset:0 atIndex:4];
+        [encoder setBuffer:logSensitivityBuffer offset:0 atIndex:5];
+        [encoder setBuffer:bandpassHanatosBuffer offset:0 atIndex:6];
+        [encoder setBuffer:hanatosRawResponseBuffer offset:0 atIndex:7];
+        [encoder setBuffer:mallettBasisIlluminantBuffer offset:0 atIndex:8];
+        [encoder setBuffer:inputToReferenceXyzBuffer offset:0 atIndex:9];
+        [encoder setBuffer:inputToSrgbBuffer offset:0 atIndex:10];
+        [encoder setBuffer:colorInfoBuffer offset:0 atIndex:11];
+        [encoder setBuffer:colorDecodeLutBuffer offset:0 atIndex:12];
+        [encoder setBuffer:colorTransferKindBuffer offset:0 atIndex:13];
+        dispatch2D(impl_->halationRawExposurePipeline);
+
+        encodeDevelopFromRaw(grainDensityBufferA, grainBaseDensityBuffer);
+        encodeProductionGrainLayersFromDensity(grainBaseDensityBuffer);
+        encodeGrainLayerBlur();
+        encodeGrainMicrostructure();
+
+        [encoder setComputePipelineState:impl_->grainResolveDensityPipeline];
+        [encoder setBuffer:grainLayerBufferA offset:0 atIndex:0];
+        [encoder setBuffer:grainMicroBufferA offset:0 atIndex:1];
+        [encoder setBuffer:grainBaseDensityBuffer offset:0 atIndex:2];
+        [encoder setBuffer:grainDensityBufferA offset:0 atIndex:3];
+        [encoder setBuffer:paramBuffer offset:0 atIndex:4];
+        [encoder setBytes:dims length:sizeof(dims) atIndex:5];
+        dispatch2D(impl_->grainResolveDensityPipeline);
+
+        id<MTLBuffer> controlledDensityBuffer = encodeApplyGrainControls(grainDensityBufferA);
+        id<MTLBuffer> grainDeltaBuffer =
+          controlledDensityBuffer == grainDensityBufferA ? grainDensityBufferB : grainDensityBufferA;
+        [encoder setComputePipelineState:impl_->neutralGrainDeltaPipeline];
+        [encoder setBuffer:grainBaseDensityBuffer offset:0 atIndex:0];
+        [encoder setBuffer:controlledDensityBuffer offset:0 atIndex:1];
+        [encoder setBuffer:grainDeltaBuffer offset:0 atIndex:2];
+        [encoder setBytes:dims length:sizeof(dims) atIndex:3];
+        dispatch2D(impl_->neutralGrainDeltaPipeline);
+
+        id<MTLBuffer> finalGrainDeltaBuffer = encodeBlurGrainDelta(grainDeltaBuffer);
+        [encoder setComputePipelineState:impl_->neutralGrainDecodePipeline];
+        [encoder setBuffer:renderSourceBuffer offset:0 atIndex:0];
+        [encoder setBuffer:finalGrainDeltaBuffer offset:0 atIndex:1];
+        [encoder setBuffer:dstBuffer offset:0 atIndex:2];
+        [encoder setBuffer:paramBuffer offset:0 atIndex:3];
+        [encoder setBytes:dims length:sizeof(dims) atIndex:4];
+        [encoder setBuffer:colorInfoBuffer offset:0 atIndex:5];
+        [encoder setBuffer:colorDecodeLutBuffer offset:0 atIndex:6];
+        [encoder setBuffer:colorTransferKindBuffer offset:0 atIndex:7];
+        [encoder setBuffer:colorEncodeLutBuffer offset:0 atIndex:8];
+        dispatch2D(impl_->neutralGrainDecodePipeline);
+      }
+    } else if (finalProcessNegative) {
       if (printDiffusionPath) {
         encodePrintDiffusionFromNegativeLight();
       } else {
@@ -6290,7 +6386,7 @@ bool MetalRenderer::render(
       }
     }
 
-    if (finalProcessNegative || scannedNegativePrintBypass || ((dirPath || preExposurePath) && !productionGrainPath && !grainSynthesisPath)) {
+    if (finalGrainOnly || finalProcessNegative || scannedNegativePrintBypass || ((dirPath || preExposurePath) && !productionGrainPath && !grainSynthesisPath)) {
       // Final output was encoded by the precomputed film-density branch.
     } else if (productionGrainPath) {
       if (!dirPath && !preExposurePath) {

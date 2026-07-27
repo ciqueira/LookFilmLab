@@ -1329,7 +1329,7 @@ constexpr uint32_t kCoreDiffusionSetCount = 3u;
 constexpr uint32_t kCorePrintDiffusionSetCount = 2u;
 constexpr uint32_t kCoreDirSetCount = 7u;
 constexpr uint32_t kCoreScannerPostSetCount = 9u;
-constexpr uint32_t kCoreGrainSetCount = 5u;
+constexpr uint32_t kCoreGrainSetCount = 7u;
 constexpr uint32_t kCoreDescriptorSetCount =
   3u + kCoreHalationSetCount + kCoreDiffusionSetCount + kCorePrintDiffusionSetCount + kCoreDirSetCount +
   kCoreScannerPostSetCount + kCoreGrainSetCount;
@@ -1418,6 +1418,8 @@ enum : uint32_t {
   kGrainOpSynthesisLayers = 11u,
   kGrainOpSynthesisResolveDensity = 12u,
   kGrainOpCopyDensity = 13u,
+  kGrainOpNeutralDecode = 14u,
+  kGrainOpExtractDelta = 15u,
 };
 
 struct DiffusionGroup {
@@ -4863,6 +4865,8 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
     finalOutput && params.process == ProcessMode::ScanNegative;
   const bool finalProcessNegative =
     finalOutput && params.process == ProcessMode::ProcessNegative;
+  const bool finalGrainOnly =
+    finalOutput && params.process == ProcessMode::GrainOnly;
   const bool scannedNegativePrintBypass =
     params.process == ProcessMode::PrintSimulation &&
     params.printSource == PrintSourceMode::ScannedNegativeBypass;
@@ -4899,7 +4903,7 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
     params.scannerUnsharpAmount > 0.0f;
   const bool scannerPostPath = printGlarePath || scannerBlurPath || scannerUnsharpPath;
   const bool grainFeatureEnabled =
-    envFlagEnabledOrDefault("SPEKTRAFILM_VULKAN_GRAIN_PASS", true) &&
+    (finalGrainOnly || envFlagEnabledOrDefault("SPEKTRAFILM_VULKAN_GRAIN_PASS", true)) &&
     params.grainEnabled &&
     !finalProcessNegative &&
     !scannedNegativePrintBypass;
@@ -5055,7 +5059,8 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
       1u
     : 0u;
   const uint32_t grainExtraPassCount =
-    previewGrainPath ? 1u : ((productionGrainPath || grainSynthesisPath) ? 10u : 0u);
+    (previewGrainPath ? 1u : ((productionGrainPath || grainSynthesisPath) ? 10u : 0u)) +
+    (finalGrainOnly ? 2u : 0u);
   const uint32_t cameraDiffusionRadius = cameraDiffusionPath ? kVulkanSpatialEffectRadiusPx : 0u;
   const uint32_t halationRadius =
     (halationScatterEnabled || halationBounceEnabled) ? kVulkanSpatialEffectRadiusPx : 0u;
@@ -5829,7 +5834,7 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
     (printScanPassEnabled || grainPath) ? dirDensityBufferInfo : destinationBufferInfo;
   const VkDescriptorBufferInfo &preGrainFilmDensityBufferInfo = dirPath ? dirDensityBufferInfo : filmDensityBufferInfo;
   const VkDescriptorBufferInfo &grainFinalDensityBufferInfo = productionGrainPath || grainSynthesisPath
-    ? (printScanPassEnabled ? grainDensityBBufferInfo : destinationBufferInfo)
+    ? ((printScanPassEnabled || finalGrainOnly) ? grainDensityBBufferInfo : destinationBufferInfo)
     : (previewGrainPath ? (printScanPassEnabled ? grainDensityABufferInfo : destinationBufferInfo) : preGrainFilmDensityBufferInfo);
   const VkDescriptorBufferInfo &finalFilmDensityBufferInfo = grainPath
     ? grainFinalDensityBufferInfo
@@ -5844,7 +5849,7 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
   frameIntsBufferInfo.offset = 0;
   frameIntsBufferInfo.range = coreFrame.frameInts.capacity;
 
-  std::array<VkWriteDescriptorSet, 460> writes{};
+  std::array<VkWriteDescriptorSet, 500> writes{};
   uint32_t writeCount = 0;
   auto writeStorageBuffer = [&](VkDescriptorSet set, uint32_t binding, const VkDescriptorBufferInfo &bufferInfo) {
     VkWriteDescriptorSet &write = writes[writeCount++];
@@ -6078,6 +6083,9 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
     writeStorageBuffer(set, 8, densityCurvesBufferInfo);
     writeStorageBuffer(set, 9, densityCurveLayersBufferInfo);
     writeStorageBuffer(set, 10, densityCurveLayerMaximaBufferInfo);
+    writeStorageBuffer(set, 11, colorDecodeLutsBufferInfo);
+    writeStorageBuffer(set, 12, colorTransferKindsBufferInfo);
+    writeStorageBuffer(set, 13, colorEncodeLutsBufferInfo);
     writeStorageBuffer(set, 27, frameFloatsBufferInfo);
     writeStorageBuffer(set, 28, frameIntsBufferInfo);
   };
@@ -6119,6 +6127,22 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
       grainFinalDensityBufferInfo,
       grainDensityBBufferInfo
     );
+    if (finalGrainOnly) {
+      writeGrainSet(
+        coreFrame.grainDescriptorSets[5],
+        sourceBufferInfo,
+        destinationBufferInfo,
+        grainDensityABufferInfo,
+        filmDensityBufferInfo
+      );
+      writeGrainSet(
+        coreFrame.grainDescriptorSets[6],
+        preGrainFilmDensityBufferInfo,
+        grainFinalDensityBufferInfo,
+        grainDensityABufferInfo,
+        grainDensityBBufferInfo
+      );
+    }
   }
   if (halationPassEnabled) {
     if (halationBoostEnabled) {
@@ -6604,9 +6628,16 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
       dispatchGrain(coreFrame.grainDescriptorSets[1], kGrainOpMicroBlurX, 1u);
       dispatchGrain(coreFrame.grainDescriptorSets[1], kGrainOpMicroBlurY, 1u);
       dispatchGrain(coreFrame.grainDescriptorSets[1], kGrainOpResolveDensity, 1u);
-      dispatchGrain(coreFrame.grainDescriptorSets[2], kGrainOpDensityBlurX, 1u);
-      dispatchGrain(coreFrame.grainDescriptorSets[3], kGrainOpDensityBlurY, 1u);
-      dispatchGrain(coreFrame.grainDescriptorSets[4], kGrainOpApplyControls, 1u);
+      if (finalGrainOnly) {
+        dispatchGrain(coreFrame.grainDescriptorSets[4], kGrainOpApplyControls, 1u);
+        dispatchGrain(coreFrame.grainDescriptorSets[6], kGrainOpExtractDelta, 1u);
+        dispatchGrain(coreFrame.grainDescriptorSets[2], kGrainOpDensityBlurX, 1u);
+        dispatchGrain(coreFrame.grainDescriptorSets[3], kGrainOpDensityBlurY, 1u);
+      } else {
+        dispatchGrain(coreFrame.grainDescriptorSets[2], kGrainOpDensityBlurX, 1u);
+        dispatchGrain(coreFrame.grainDescriptorSets[3], kGrainOpDensityBlurY, 1u);
+        dispatchGrain(coreFrame.grainDescriptorSets[4], kGrainOpApplyControls, 1u);
+      }
       consumeSpatialRadius(grainRadius);
     } else if (grainSynthesisPath) {
       dispatchGrain(coreFrame.grainDescriptorSets[1], kGrainOpSynthesisLayers, 9u);
@@ -6620,6 +6651,9 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
       dispatchGrain(coreFrame.grainDescriptorSets[3], kGrainOpDensityBlurY, 1u);
       dispatchGrain(coreFrame.grainDescriptorSets[4], kGrainOpCopyDensity, 1u);
       consumeSpatialRadius(grainRadius);
+    }
+    if (finalGrainOnly && productionGrainPath) {
+      dispatchGrain(coreFrame.grainDescriptorSets[5], kGrainOpNeutralDecode, 1u);
     }
   }
 

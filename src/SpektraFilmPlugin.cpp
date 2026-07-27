@@ -162,6 +162,7 @@ enum class ProductKind : int32_t {
   Cine = 1,
   Photo = 2,
   Scan = 3,
+  Grain = 4,
 };
 
 constexpr ProductKind kProductKind = static_cast<ProductKind>(SPEKTRAFILM_PRODUCT_KIND);
@@ -184,6 +185,10 @@ constexpr bool isProductPhoto() {
 
 constexpr bool isProductScan() {
   return isProProductionBuild() && kProductKind == ProductKind::Scan;
+}
+
+constexpr bool isProductGrain() {
+  return isProProductionBuild() && kProductKind == ProductKind::Grain;
 }
 
 enum ParamTag : uint32_t {
@@ -457,6 +462,17 @@ bool stringInList(const char *name, const char *const *items, size_t count) {
 }
 
 bool productionPublicParam(const char *name) {
+  constexpr const char *kProductionGrainParams[] = {
+    "inputPrimariesColorSpace",
+    "inputTransferColorSpace",
+    "filmFormat",
+    "grainAmount",
+    "grainSaturation",
+    "grainSeed",
+    "grainAnimate",
+    "supportAboutHelp",
+    "supportOpenMCNexus",
+  };
   constexpr const char *kProductionCommonParams[] = {
     "inputPrimariesColorSpace",
     "inputTransferColorSpace",
@@ -465,6 +481,9 @@ bool productionPublicParam(const char *name) {
     "supportAboutHelp",
     "supportOpenMCNexus",
   };
+  if (isProductGrain()) {
+    return stringInList(name, kProductionGrainParams, std::size(kProductionGrainParams));
+  }
   constexpr const char *kProductionCineParams[] = {
     "filmFormat",
     "filmExposureEv",
@@ -595,6 +614,13 @@ bool groupVisibleInFlavor(const char *name) {
     return isProCalibrationBuild();
   }
   if (isProProductionBuild()) {
+    if (isProductGrain()) {
+      return
+        std::strcmp(name, "colorGroup") == 0 ||
+        std::strcmp(name, "productionCameraGroup") == 0 ||
+        std::strcmp(name, "grainGroup") == 0 ||
+        std::strcmp(name, "supportGroup") == 0;
+    }
     if (std::strcmp(name, "colorGroup") == 0 ||
         std::strcmp(name, "productionStocksGroup") == 0 ||
         std::strcmp(name, "productionLaboratoryGroup") == 0 ||
@@ -2037,6 +2063,7 @@ constexpr const char *kCineNegativeProfileLabels[] = {
 };
 
 constexpr int kCineNegativeProfileIndices[] = {12, 9, 10, 11, 8};
+constexpr int kGrainReferenceFilmIndex = 12;
 
 constexpr const char *kPhotoNegativeProfileLabels[] = {
   "Kodak Ektar 100",
@@ -2120,6 +2147,31 @@ void applyCreativePrinterLightTrims(spektrafilm::RenderParams &params, float red
 }
 
 void forceProductionRenderParams(spektrafilm::RenderParams &params) {
+  if (isProductGrain()) {
+    params.process = spektrafilm::ProcessMode::GrainOnly;
+    params.film = kGrainReferenceFilmIndex;
+    params.outputRole = spektrafilm::OutputRole::DisplaySdr;
+    params.outputPrimariesColorSpace = params.inputPrimariesColorSpace;
+    params.outputTransferColorSpace = params.inputTransferColorSpace;
+    params.scanNegativeInvert = false;
+    params.colorAdaptation = false;
+    params.colorAdaptationInputCompression = false;
+    params.colorAdaptationCurveSmoothing = false;
+    params.colorAdaptationOutputLightnessCompression = false;
+    params.colorAdaptationOutputChromaCompression = false;
+    params.filmPushPullStops = 0.0f;
+    params.negativeBleachBypassAmount = 0.0f;
+    params.dirCouplersAmount = 0.0f;
+    params.grainEnabled = true;
+    params.grainModel = spektrafilm::GrainModel::Production;
+    params.grainParticleAreaUm2 = 0.1f;
+    params.grainFinalBlurUm = 7.17f;
+    params.halationEnabled = false;
+    params.cameraDiffusionEnabled = false;
+    params.printDiffusionEnabled = false;
+    params.scannerEnabled = false;
+    return;
+  }
   params.process = spektrafilm::ProcessMode::PrintSimulation;
   params.outputRole = spektrafilm::OutputRole::DisplaySdr;
   params.scanNegativeInvert = false;
@@ -3218,13 +3270,15 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
     params.cameraDiffusionEnabled = false;
   }
   if (isProProductionBuild()) {
-    if (!isProductScan()) {
+    if (!isProductScan() && !isProductGrain()) {
       params.film = productionNegativeIndexFromChoice(getIntAtTime(data->productionProfileNegative, time, 0));
     }
-    params.paper = productionPrintIndexFromChoice(getIntAtTime(data->productionProfilePrint, time, 0));
     forceProductionRenderParams(params);
-    applyBundledProductionCalibration(params);
-    if (!isProductScan() && getBoolAtTime(data->productionPrinterLightsEnabled, time, true)) {
+    if (!isProductGrain()) {
+      params.paper = productionPrintIndexFromChoice(getIntAtTime(data->productionProfilePrint, time, 0));
+      applyBundledProductionCalibration(params);
+    }
+    if (!isProductScan() && !isProductGrain() && getBoolAtTime(data->productionPrinterLightsEnabled, time, true)) {
       applyCreativePrinterLightTrims(
         params,
         static_cast<float>(getDoubleAtTime(data->creativePrinterLightR, time, 0.0)),
@@ -4063,6 +4117,19 @@ void addProductionControlsPageChildren(PageLayout &page) {
     return;
   }
 
+  if (isProductGrain()) {
+    addPageChild(page, "inputPrimariesColorSpace");
+    addPageChild(page, "inputTransferColorSpace");
+    addPageChild(page, "filmFormat");
+    addPageChild(page, "grainAmount");
+    addPageChild(page, "grainSaturation");
+    addPageChild(page, "grainSeed");
+    addPageChild(page, "grainAnimate");
+    addPageChild(page, "supportAboutHelp");
+    addPageChild(page, "supportOpenMCNexus");
+    return;
+  }
+
   if (isProductScan()) {
     addPageChild(page, "colorGroup");
     addPageChild(page, "scannedNegativeGroup");
@@ -4110,10 +4177,10 @@ const char *displayLabelForCurrentBuild(const char *name, const char *fallback) 
     return "Scanned Negative";
   }
   if (std::strcmp(name, "inputPrimariesColorSpace") == 0) {
-    return "Input Space";
+    return isProductGrain() ? "Working Color Space" : "Input Space";
   }
   if (std::strcmp(name, "inputTransferColorSpace") == 0) {
-    return "Input Gamma";
+    return isProductGrain() ? "Working Gamma" : "Input Gamma";
   }
   if (std::strcmp(name, "outputPrimariesColorSpace") == 0) {
     return "Output Display";
@@ -4972,6 +5039,8 @@ const char *pluginFlavorName() {
 
 const char *processName(spektrafilm::ProcessMode process) {
   switch (process) {
+    case spektrafilm::ProcessMode::GrainOnly:
+      return "Grain only";
     case spektrafilm::ProcessMode::ScanNegative:
       return "Scan negative";
     case spektrafilm::ProcessMode::ProcessNegative:
@@ -7640,7 +7709,6 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
     0,
     "productionStocksGroup"
   );
-
   std::vector<const char *> films;
   films.reserve(spektrafilm::kSpektraFilmCount);
   for (uint32_t i = 0; i < spektrafilm::kSpektraFilmCount; ++i) {

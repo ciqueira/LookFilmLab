@@ -8,6 +8,7 @@ enum class ProcessMode : int32_t {
   PrintSimulation = 0,
   ScanNegative = 1,
   ProcessNegative = 2,
+  GrainOnly = 3,
 };
 
 enum class PrintSourceMode : int32_t {

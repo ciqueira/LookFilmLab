@@ -5698,6 +5698,49 @@ kernel void spektrafilm_production_grain_layers_from_density(
   );
 }
 
+kernel void spektrafilm_neutral_grain_delta(
+  device const float4 *baseDensity [[buffer(0)]],
+  device const float4 *grainedDensity [[buffer(1)]],
+  device float4 *densityDeltaOut [[buffer(2)]],
+  constant uint2 &dims [[buffer(3)]],
+  uint2 gid [[thread_position_in_grid]]
+) {
+  if (gid.x >= dims.x || gid.y >= dims.y) {
+    return;
+  }
+  const uint index = gid.y * dims.x + gid.x;
+  densityDeltaOut[index] = float4(grainedDensity[index].rgb - baseDensity[index].rgb, 0.0);
+}
+
+kernel void spektrafilm_neutral_grain_decode(
+  device const float4 *source [[buffer(0)]],
+  device const float4 *densityDeltaIn [[buffer(1)]],
+  device float4 *destination [[buffer(2)]],
+  constant SpektraKernelParams &params [[buffer(3)]],
+  constant uint2 &dims [[buffer(4)]],
+  constant SpektraColorInfo &colorInfo [[buffer(5)]],
+  device const float *decodeLuts [[buffer(6)]],
+  device const uint *transferKinds [[buffer(7)]],
+  device const float *encodeLuts [[buffer(8)]],
+  uint2 gid [[thread_position_in_grid]]
+) {
+  if (gid.x >= dims.x || gid.y >= dims.y) {
+    return;
+  }
+  const uint index = gid.y * dims.x + gid.x;
+  const float4 pixel = source[index];
+  const float3 linear = spektra_decode_input_rgb(pixel.rgb, params, colorInfo, decodeLuts, transferKinds);
+  const float3 densityDelta = densityDeltaIn[index].rgb;
+  float3 resolved = linear;
+  resolved.r = linear.r > 0.0 ? linear.r * pow(10.0, -densityDelta.r) : linear.r;
+  resolved.g = linear.g > 0.0 ? linear.g * pow(10.0, -densityDelta.g) : linear.g;
+  resolved.b = linear.b > 0.0 ? linear.b * pow(10.0, -densityDelta.b) : linear.b;
+  destination[index] = float4(
+    spektra_finalize_output_rgb(resolved, params, colorInfo, encodeLuts, transferKinds),
+    pixel.a
+  );
+}
+
 static void spektra_grain_synthesis_layers_from_density_impl(
   device const float4 *filmDensity,
   device float *layerOut,

@@ -5,7 +5,7 @@
 Simplificar o fluxo para obter resultados consistentes. O projeto
 prioriza controles reduzidos, stocks calibrados e releases estáveis para fluxos
 com DaVinci Resolve, tanto na aba Color quanto na nova aba Photos. O pacote é
-dividido em três partes, com funções diferentes.
+dividido em quatro partes, com funções diferentes.
 
 As ferramentas usam uma base modificada GPL-3.0 relacionada ao
 `spektrafilm-ofx`, que por sua vez é um port OpenFX nativo e uma expansão do
@@ -25,6 +25,7 @@ Esta distribuição de demonstração inclui:
 | Look Film Lab CINE | 0.2.0 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
 | Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
 | Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
+| Look Film Lab GRAIN | 0.1.2 | Pendente | — |
 
 ## Look Film Lab CINE
 
@@ -76,6 +77,21 @@ Controles públicos principais:
 
 O fluxo preserva as características do negativo físico e aplica a resposta de
 impressão em um papel simulado.
+
+## Look Film Lab GRAIN
+
+Look Film Lab GRAIN isola o modelo de grain de produção sem aplicar look de
+negativo, stock de print, resposta de papel ou transformação de display. As
+primárias e a curva de transferência de trabalho são preservadas na saída:
+uma entrada ARRI Wide Gamut 3 / LogC3 retorna ARRI Wide Gamut 3 / LogC3 com
+grain.
+
+Kodak Vision3 5219 500T é usado internamente como referência física fixa para
+exposição, revelação e estrutura de camadas. Somente sua diferença estocástica
+de densidade é devolvida ao RGB original; portanto, o look, a temperatura de
+cor e a curva característica do negativo não são aplicados. Os controles
+públicos são `Working Color Space`, `Working Gamma`, `Film Format`, `Amount`,
+`Saturation`, `Seed` e `Animate`.
 
 ## Suporte de Plataforma
 

@@ -16,9 +16,9 @@
   <key>CFBundlePackageType</key>
   <string>BNDL</string>
   <key>CFBundleShortVersionString</key>
-  <string>@SPEKTRAFILM_VERSION@</string>
+  <string>@SPEKTRAFILM_BUNDLE_VERSION@</string>
   <key>CFBundleVersion</key>
-  <string>@SPEKTRAFILM_VERSION@</string>
+  <string>@SPEKTRAFILM_BUNDLE_VERSION@</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>

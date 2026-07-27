@@ -16,6 +16,8 @@ const uint kOpApplyControls = 10u;
 const uint kOpSynthesisLayers = 11u;
 const uint kOpSynthesisResolveDensity = 12u;
 const uint kOpCopyDensity = 13u;
+const uint kOpNeutralDecode = 14u;
+const uint kOpExtractDelta = 15u;
 
 const uint kFrameFilmDensityMaxR = 16u;
 const uint kFrameFilmDensityMaxG = 17u;
@@ -67,6 +69,13 @@ const uint kFrameIntGrainSynthesisMaxGrainsPerCell = 23u;
 const uint kFrameIntGrainSynthesisLayered = 24u;
 const uint kFrameIntGrainSynthesisActive = 25u;
 const uint kFrameIntGrainBlurRecurrence = 26u;
+const uint kFrameIntInputTransferColorSpace = 35u;
+const uint kFrameIntOutputTransferColorSpace = 37u;
+const uint kOutputGamutCompressionStride = 18u;
+const uint kTransferLinear = 0u;
+const uint kTransferSrgb = 2u;
+const uint kTransferGamma = 3u;
+const uint kTransferProPhoto = 4u;
 
 layout(std430, binding = 0) readonly buffer SourcePixels {
   vec4 sourcePixels[];
@@ -110,6 +119,18 @@ layout(std430, binding = 9) readonly buffer FilmDensityCurveLayers {
 
 layout(std430, binding = 10) readonly buffer FilmDensityCurveLayerMaxima {
   float densityCurveLayerMaxima[];
+};
+
+layout(std430, binding = 11) readonly buffer ColorDecodeLuts {
+  float colorDecodeLuts[];
+};
+
+layout(std430, binding = 12) readonly buffer ColorTransferKinds {
+  uint colorTransferKinds[];
+};
+
+layout(std430, binding = 13) readonly buffer ColorEncodeLuts {
+  float colorEncodeLuts[];
 };
 
 layout(std430, binding = 27) readonly buffer FrameFloats {
@@ -164,6 +185,117 @@ float f(uint index) {
 
 uint u(uint index) {
   return frameInts[index];
+}
+
+uint colorSpaceIndex(int colorSpace) {
+  return uint(clamp(colorSpace, 0, int(max(params.colorSpaceCount, 1u)) - 1));
+}
+
+float sampleColorDecodeLut(float value, uint colorSpace) {
+  const uint lutSize = max(params.transferLutSize, 2u);
+  const float range = max(params.colorDecodeMax - params.colorDecodeMin, 1.0e-6);
+  const float step = range / float(lutSize - 1u);
+  const uint offset = colorSpace * lutSize;
+  if (value <= params.colorDecodeMin) {
+    const float y0 = colorDecodeLuts[offset];
+    const float y1 = colorDecodeLuts[offset + 1u];
+    return y0 + (value - params.colorDecodeMin) * ((y1 - y0) / max(step, 1.0e-12));
+  }
+  if (value >= params.colorDecodeMax) {
+    const float y0 = colorDecodeLuts[offset + lutSize - 2u];
+    const float y1 = colorDecodeLuts[offset + lutSize - 1u];
+    return y1 + (value - params.colorDecodeMax) * ((y1 - y0) / max(step, 1.0e-12));
+  }
+  const float position = ((value - params.colorDecodeMin) / range) * float(lutSize - 1u);
+  const uint lo = uint(floor(position));
+  const uint hi = min(lo + 1u, lutSize - 1u);
+  return mix(colorDecodeLuts[offset + lo], colorDecodeLuts[offset + hi], position - float(lo));
+}
+
+vec3 decodeInputRgb(vec3 rgb) {
+  const uint colorSpace = colorSpaceIndex(int(u(kFrameIntInputTransferColorSpace)));
+  if (colorTransferKinds[colorSpace] == kTransferLinear) {
+    return rgb;
+  }
+  return vec3(
+    sampleColorDecodeLut(rgb.r, colorSpace),
+    sampleColorDecodeLut(rgb.g, colorSpace),
+    sampleColorDecodeLut(rgb.b, colorSpace)
+  );
+}
+
+float sampleColorEncodeLutRange(float value, uint colorSpace, float rangeMin, float rangeMax, uint lutSize) {
+  const float range = max(rangeMax - rangeMin, 1.0e-6);
+  const float step = range / float(lutSize - 1u);
+  const uint offset = colorSpace * lutSize;
+  if (value <= rangeMin) {
+    const float y0 = colorEncodeLuts[offset];
+    const float y1 = colorEncodeLuts[offset + 1u];
+    return y0 + (value - rangeMin) * ((y1 - y0) / max(step, 1.0e-12));
+  }
+  if (value >= rangeMax) {
+    const float y0 = colorEncodeLuts[offset + lutSize - 2u];
+    const float y1 = colorEncodeLuts[offset + lutSize - 1u];
+    return y1 + (value - rangeMax) * ((y1 - y0) / max(step, 1.0e-12));
+  }
+  const float position = ((value - rangeMin) / range) * float(lutSize - 1u);
+  const uint lo = uint(floor(position));
+  const uint hi = min(lo + 1u, lutSize - 1u);
+  return mix(colorEncodeLuts[offset + lo], colorEncodeLuts[offset + hi], position - float(lo));
+}
+
+float colorTransferParam(uint colorSpace) {
+  const uint offset = params.colorSpaceCount * (params.transferLutSize + kOutputGamutCompressionStride);
+  return colorEncodeLuts[offset + colorSpace];
+}
+
+float signedSrgbEncode(float value) {
+  const float x = abs(value);
+  const float encoded = x <= 0.0031308 ? 12.92 * x : 1.055 * pow(x, 1.0 / 2.4) - 0.055;
+  return value < 0.0 ? -encoded : encoded;
+}
+
+float signedGammaEncode(float value, float gamma) {
+  const float encoded = pow(abs(value), 1.0 / max(gamma, 1.0e-6));
+  return value < 0.0 ? -encoded : encoded;
+}
+
+float signedProPhotoEncode(float value) {
+  const float x = abs(value);
+  const float encoded = x < (1.0 / 512.0) ? 16.0 * x : pow(x, 1.0 / 1.8);
+  return value < 0.0 ? -encoded : encoded;
+}
+
+float encodeOutputChannel(float value, uint colorSpace) {
+  const uint transferKind = colorTransferKinds[colorSpace];
+  if (transferKind == kTransferLinear) {
+    return value;
+  }
+  if (transferKind == kTransferSrgb) {
+    return signedSrgbEncode(value);
+  }
+  if (transferKind == kTransferGamma) {
+    return signedGammaEncode(value, colorTransferParam(colorSpace));
+  }
+  if (transferKind == kTransferProPhoto) {
+    return signedProPhotoEncode(value);
+  }
+  return sampleColorEncodeLutRange(
+    value,
+    colorSpace,
+    f(22u),
+    f(23u),
+    max(params.transferLutSize, 2u)
+  );
+}
+
+vec3 encodeOutputRgb(vec3 rgb) {
+  const uint colorSpace = colorSpaceIndex(int(u(kFrameIntOutputTransferColorSpace)));
+  return vec3(
+    encodeOutputChannel(rgb.r, colorSpace),
+    encodeOutputChannel(rgb.g, colorSpace),
+    encodeOutputChannel(rgb.b, colorSpace)
+  );
 }
 
 uint spektraHash(uint x) {
@@ -1050,6 +1182,29 @@ void main() {
   const uint index = gid3.y * params.width + gid3.x;
 
   const uint baseSeed = u(kFrameIntGrainSeed) ^ u(kFrameIntGrainFrameSeed);
+  if (params.operation == kOpNeutralDecode) {
+    const vec4 source = loadSourcePixel(index);
+    if (f(kFrameGrainAmount) <= 1.0e-6) {
+      storeDestinationPixel(index, source);
+      return;
+    }
+    const vec3 linear = decodeInputRgb(source.rgb);
+    const vec3 densityDelta = auxPixelsA[index].rgb;
+    vec3 resolved = linear;
+    resolved.r = linear.r > 0.0 ? linear.r * pow(10.0, -densityDelta.r) : linear.r;
+    resolved.g = linear.g > 0.0 ? linear.g * pow(10.0, -densityDelta.g) : linear.g;
+    resolved.b = linear.b > 0.0 ? linear.b * pow(10.0, -densityDelta.b) : linear.b;
+    storeDestinationPixel(index, vec4(encodeOutputRgb(resolved), source.a));
+    return;
+  }
+
+  if (params.operation == kOpExtractDelta) {
+    const vec4 base = loadSourcePixel(index);
+    const vec4 controlled = loadDestinationPixel(index);
+    storeAuxAPixel(index, vec4(controlled.rgb - base.rgb, 0.0));
+    return;
+  }
+
   if (params.operation == kOpPreview) {
     const vec4 source = loadSourcePixel(index);
     const vec3 grained = previewGrainDensity(source.rgb, outputPixelFilmUm(gid3.xy), baseSeed);

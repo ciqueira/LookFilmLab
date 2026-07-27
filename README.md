@@ -3,7 +3,7 @@
 Simplify the workflow to obtain consistent results. The project prioritizes
 reduced controls, calibrated stocks, and stable releases for DaVinci Resolve
 workflows, both in the Color page and the new Photos page. The package is
-divided into three parts with different roles.
+divided into four parts with different roles.
 
 The tools use a modified GPL-3.0 codebase related to `spektrafilm-ofx`, itself a
 native OpenFX port and expansion of the original Python `spektrafilm` project.
@@ -22,6 +22,7 @@ This demonstration distribution includes:
 | Look Film Lab CINE | 0.2.0 | OpenKey | [Get Key](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
 | Look Film Lab PHOTO | 0.1.1 | OpenKey | [Get Key](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
 | Look Film Lab SCAN | 0.1.4 | OpenKey | [Get Key](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
+| Look Film Lab GRAIN | 0.1.2 | Pending | — |
 
 ## Look Film Lab CINE
 
@@ -74,6 +75,20 @@ Main public controls:
 
 The workflow preserves the physical negative characteristics and applies the
 print response on a simulated paper.
+
+## Look Film Lab GRAIN
+
+Look Film Lab GRAIN isolates the production grain model without applying a
+negative look, print stock, paper response, or display transform. The selected
+working primaries and transfer curve are preserved at the output, so an ARRI
+Wide Gamut 3 / LogC3 input returns ARRI Wide Gamut 3 / LogC3 with grain.
+
+Kodak Vision3 5219 500T is used internally as a fixed physical reference for
+exposure, development, and layer structure. Only its stochastic density
+difference is returned to the original RGB, so the negative look, color
+temperature, and characteristic curve are not applied. Public controls are
+`Working Color Space`, `Working Gamma`, `Film Format`, `Amount`, `Saturation`,
+`Seed`, and `Animate`.
 
 ## Platform Support
 
