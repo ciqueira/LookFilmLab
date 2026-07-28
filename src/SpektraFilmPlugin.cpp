@@ -332,6 +332,21 @@ inline constexpr ParamMetadata kParamMetadata[] = {
   {"grainFinalBlurUm", "grainGroup", kParamTagNone},
   {"grainBlurDyeCloudsUm", "grainGroup", kParamTagNone},
   {"grainMicroStructure", "grainGroup", kParamTagNone},
+  {"grainAdvancedParticleScaleR", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedParticleScaleG", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedParticleScaleB", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedLayerScaleCoarse", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedLayerScaleMedium", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedLayerScaleFine", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedDensityFloorR", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedDensityFloorG", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedDensityFloorB", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedUniformityR", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedUniformityG", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedUniformityB", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedMicrostructureScaleUm", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedMicrostructureSigmaNm", "grainAdvancedGroup", kParamTagNone},
+  {"grainAdvancedReset", "grainAdvancedGroup", kParamTagNone},
   {"grainSeed", "grainGroup", kParamTagNone},
   {"grainAnimate", "grainGroup", kParamTagNone},
   {"grainSynthesisSize", "grainGroup", development()},
@@ -468,6 +483,24 @@ bool productionPublicParam(const char *name) {
     "filmFormat",
     "grainAmount",
     "grainSaturation",
+    "grainParticleAreaUm2",
+    "grainFinalBlurUm",
+    "grainBlurDyeCloudsUm",
+    "grainAdvancedParticleScaleR",
+    "grainAdvancedParticleScaleG",
+    "grainAdvancedParticleScaleB",
+    "grainAdvancedLayerScaleCoarse",
+    "grainAdvancedLayerScaleMedium",
+    "grainAdvancedLayerScaleFine",
+    "grainAdvancedDensityFloorR",
+    "grainAdvancedDensityFloorG",
+    "grainAdvancedDensityFloorB",
+    "grainAdvancedUniformityR",
+    "grainAdvancedUniformityG",
+    "grainAdvancedUniformityB",
+    "grainAdvancedMicrostructureScaleUm",
+    "grainAdvancedMicrostructureSigmaNm",
+    "grainAdvancedReset",
     "grainSeed",
     "grainAnimate",
     "supportAboutHelp",
@@ -612,6 +645,13 @@ bool shouldDefineParam(const char *name) {
 bool groupVisibleInFlavor(const char *name) {
   if (std::strcmp(name, "timelineDebugGroup") == 0) {
     return isProCalibrationBuild();
+  }
+  if (std::strcmp(name, "grainAdvancedGroup") == 0 ||
+      std::strcmp(name, "grainAdvancedParticleChannelsGroup") == 0 ||
+      std::strcmp(name, "grainAdvancedEmulsionLayersGroup") == 0 ||
+      std::strcmp(name, "grainAdvancedDensityDistributionGroup") == 0 ||
+      std::strcmp(name, "grainAdvancedMicrostructureGroup") == 0) {
+    return isProProductionBuild() && isProductGrain();
   }
   if (isProProductionBuild()) {
     if (isProductGrain()) {
@@ -853,6 +893,20 @@ inline constexpr ParamDefault kParamDefaults[] = {
   doubleDefault("grainFinalBlurUm", 7.17),
   doubleDefault("grainBlurDyeCloudsUm", 1.0),
   double2DDefault("grainMicroStructure", 0.2, 30.0),
+  doubleDefault("grainAdvancedParticleScaleR", 1.2),
+  doubleDefault("grainAdvancedParticleScaleG", 1.0),
+  doubleDefault("grainAdvancedParticleScaleB", 2.5),
+  doubleDefault("grainAdvancedLayerScaleCoarse", 6.0),
+  doubleDefault("grainAdvancedLayerScaleMedium", 1.0),
+  doubleDefault("grainAdvancedLayerScaleFine", 0.4),
+  doubleDefault("grainAdvancedDensityFloorR", 0.04),
+  doubleDefault("grainAdvancedDensityFloorG", 0.05),
+  doubleDefault("grainAdvancedDensityFloorB", 0.06),
+  doubleDefault("grainAdvancedUniformityR", 0.99),
+  doubleDefault("grainAdvancedUniformityG", 0.97),
+  doubleDefault("grainAdvancedUniformityB", 0.98),
+  doubleDefault("grainAdvancedMicrostructureScaleUm", 0.2),
+  doubleDefault("grainAdvancedMicrostructureSigmaNm", 30.0),
   intDefault("grainSeed", 0),
   boolDefault("grainAnimate", true),
   doubleDefault("grainSynthesisSize", 1.0),
@@ -1208,6 +1262,21 @@ struct InstanceData {
   OfxParamHandle grainFinalBlurUm = nullptr;
   OfxParamHandle grainBlurDyeCloudsUm = nullptr;
   OfxParamHandle grainMicroStructure = nullptr;
+  OfxParamHandle grainAdvancedParticleScaleR = nullptr;
+  OfxParamHandle grainAdvancedParticleScaleG = nullptr;
+  OfxParamHandle grainAdvancedParticleScaleB = nullptr;
+  OfxParamHandle grainAdvancedLayerScaleCoarse = nullptr;
+  OfxParamHandle grainAdvancedLayerScaleMedium = nullptr;
+  OfxParamHandle grainAdvancedLayerScaleFine = nullptr;
+  OfxParamHandle grainAdvancedDensityFloorR = nullptr;
+  OfxParamHandle grainAdvancedDensityFloorG = nullptr;
+  OfxParamHandle grainAdvancedDensityFloorB = nullptr;
+  OfxParamHandle grainAdvancedUniformityR = nullptr;
+  OfxParamHandle grainAdvancedUniformityG = nullptr;
+  OfxParamHandle grainAdvancedUniformityB = nullptr;
+  OfxParamHandle grainAdvancedMicrostructureScaleUm = nullptr;
+  OfxParamHandle grainAdvancedMicrostructureSigmaNm = nullptr;
+  OfxParamHandle grainAdvancedReset = nullptr;
   OfxParamHandle grainSeed = nullptr;
   OfxParamHandle grainAnimate = nullptr;
   OfxParamHandle grainSynthesisSize = nullptr;
@@ -2164,8 +2233,6 @@ void forceProductionRenderParams(spektrafilm::RenderParams &params) {
     params.dirCouplersAmount = 0.0f;
     params.grainEnabled = true;
     params.grainModel = spektrafilm::GrainModel::Production;
-    params.grainParticleAreaUm2 = 0.1f;
-    params.grainFinalBlurUm = 7.17f;
     params.halationEnabled = false;
     params.cameraDiffusionEnabled = false;
     params.printDiffusionEnabled = false;
@@ -3147,6 +3214,36 @@ spektrafilm::RenderParams readParams(InstanceData *data, OfxTime time) {
   }
   params.grainMicroStructureScale = static_cast<float>(microStructure[0]);
   params.grainMicroStructureSigmaNm = static_cast<float>(microStructure[1]);
+  if (isProductGrain()) {
+    params.grainParticleScaleR =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedParticleScaleR, time, 1.2));
+    params.grainParticleScaleG =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedParticleScaleG, time, 1.0));
+    params.grainParticleScaleB =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedParticleScaleB, time, 2.5));
+    params.grainParticleScaleLayer0 =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedLayerScaleCoarse, time, 6.0));
+    params.grainParticleScaleLayer1 =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedLayerScaleMedium, time, 1.0));
+    params.grainParticleScaleLayer2 =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedLayerScaleFine, time, 0.4));
+    params.grainDensityMinR =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedDensityFloorR, time, 0.04));
+    params.grainDensityMinG =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedDensityFloorG, time, 0.05));
+    params.grainDensityMinB =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedDensityFloorB, time, 0.06));
+    params.grainUniformityR =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedUniformityR, time, 0.99));
+    params.grainUniformityG =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedUniformityG, time, 0.97));
+    params.grainUniformityB =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedUniformityB, time, 0.98));
+    params.grainMicroStructureScale =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedMicrostructureScaleUm, time, 0.2));
+    params.grainMicroStructureSigmaNm =
+      static_cast<float>(getDoubleAtTime(data->grainAdvancedMicrostructureSigmaNm, time, 30.0));
+  }
   params.grainSeed = static_cast<uint32_t>(getIntAtTime(data->grainSeed, time, 1));
   params.grainAnimate = getBoolAtTime(data->grainAnimate, time, false);
   params.grainSynthesisSize = static_cast<float>(getDoubleAtTime(data->grainSynthesisSize, time, 1.0));
@@ -4123,6 +4220,10 @@ void addProductionControlsPageChildren(PageLayout &page) {
     addPageChild(page, "filmFormat");
     addPageChild(page, "grainAmount");
     addPageChild(page, "grainSaturation");
+    addPageChild(page, "grainParticleAreaUm2");
+    addPageChild(page, "grainFinalBlurUm");
+    addPageChild(page, "grainBlurDyeCloudsUm");
+    addPageChild(page, "grainAdvancedGroup");
     addPageChild(page, "grainSeed");
     addPageChild(page, "grainAnimate");
     addPageChild(page, "supportAboutHelp");
@@ -4209,7 +4310,13 @@ const char *displayLabelForCurrentBuild(const char *name, const char *fallback) 
   return fallback;
 }
 
-void defineGroup(OfxParamSetHandle paramSet, const char *name, const char *label, bool openByDefault) {
+void defineGroup(
+  OfxParamSetHandle paramSet,
+  const char *name,
+  const char *label,
+  bool openByDefault,
+  const char *parent = nullptr
+) {
   if (!shouldDefineGroup(name)) {
     return;
   }
@@ -4217,6 +4324,7 @@ void defineGroup(OfxParamSetHandle paramSet, const char *name, const char *label
   gParamHost->paramDefine(paramSet, kOfxParamTypeGroup, name, &props);
   gPropHost->propSetString(props, kOfxPropLabel, 0, displayLabelForCurrentBuild(name, label));
   setParamHint(props, name);
+  setParamParent(props, parent);
   setParamDescriptorHidden(props, !groupVisibleInFlavor(name));
   gPropHost->propSetInt(props, kOfxParamPropGroupOpen, 0, openByDefault ? 1 : 0);
 }
@@ -4265,6 +4373,42 @@ void defineDouble(OfxParamSetHandle paramSet, const char *name, const char *labe
   gPropHost->propSetDouble(props, kOfxParamPropMax, 0, max);
   gPropHost->propSetDouble(props, kOfxParamPropDisplayMin, 0, min);
   gPropHost->propSetDouble(props, kOfxParamPropDisplayMax, 0, max);
+}
+
+void definePrecisionDouble(
+  OfxParamSetHandle paramSet,
+  const char *name,
+  const char *label,
+  double defaultValue,
+  double min,
+  double max,
+  double displayMin,
+  double displayMax,
+  double increment,
+  int digits,
+  const char *parent = nullptr
+) {
+  if (!shouldDefineParam(name)) {
+    return;
+  }
+  StoredParamValue stored{};
+  if (storedValueForDefault(name, stored)) {
+    defaultValue = stored.doubleValue[0];
+  }
+  defaultValue = std::clamp(defaultValue, min, max);
+  OfxPropertySetHandle props = nullptr;
+  gParamHost->paramDefine(paramSet, kOfxParamTypeDouble, name, &props);
+  gPropHost->propSetString(props, kOfxPropLabel, 0, displayLabelForCurrentBuild(name, label));
+  setParamHint(props, name);
+  setParamParent(props, parent);
+  setParamDescriptorHidden(props, parameterHiddenInFlavor(name));
+  gPropHost->propSetDouble(props, kOfxParamPropDefault, 0, defaultValue);
+  gPropHost->propSetDouble(props, kOfxParamPropMin, 0, min);
+  gPropHost->propSetDouble(props, kOfxParamPropMax, 0, max);
+  gPropHost->propSetDouble(props, kOfxParamPropDisplayMin, 0, displayMin);
+  gPropHost->propSetDouble(props, kOfxParamPropDisplayMax, 0, displayMax);
+  gPropHost->propSetDouble(props, kOfxParamPropIncrement, 0, increment);
+  gPropHost->propSetInt(props, kOfxParamPropDigits, 0, digits);
 }
 
 void defineInt(OfxParamSetHandle paramSet, const char *name, const char *label, int defaultValue, int min, int max, const char *parent = nullptr) {
@@ -6468,6 +6612,21 @@ OfxStatus createInstance(OfxImageEffectHandle effect) {
   cacheParam(paramSet, "grainFinalBlurUm", data->grainFinalBlurUm);
   cacheParam(paramSet, "grainBlurDyeCloudsUm", data->grainBlurDyeCloudsUm);
   cacheParam(paramSet, "grainMicroStructure", data->grainMicroStructure);
+  cacheParam(paramSet, "grainAdvancedParticleScaleR", data->grainAdvancedParticleScaleR);
+  cacheParam(paramSet, "grainAdvancedParticleScaleG", data->grainAdvancedParticleScaleG);
+  cacheParam(paramSet, "grainAdvancedParticleScaleB", data->grainAdvancedParticleScaleB);
+  cacheParam(paramSet, "grainAdvancedLayerScaleCoarse", data->grainAdvancedLayerScaleCoarse);
+  cacheParam(paramSet, "grainAdvancedLayerScaleMedium", data->grainAdvancedLayerScaleMedium);
+  cacheParam(paramSet, "grainAdvancedLayerScaleFine", data->grainAdvancedLayerScaleFine);
+  cacheParam(paramSet, "grainAdvancedDensityFloorR", data->grainAdvancedDensityFloorR);
+  cacheParam(paramSet, "grainAdvancedDensityFloorG", data->grainAdvancedDensityFloorG);
+  cacheParam(paramSet, "grainAdvancedDensityFloorB", data->grainAdvancedDensityFloorB);
+  cacheParam(paramSet, "grainAdvancedUniformityR", data->grainAdvancedUniformityR);
+  cacheParam(paramSet, "grainAdvancedUniformityG", data->grainAdvancedUniformityG);
+  cacheParam(paramSet, "grainAdvancedUniformityB", data->grainAdvancedUniformityB);
+  cacheParam(paramSet, "grainAdvancedMicrostructureScaleUm", data->grainAdvancedMicrostructureScaleUm);
+  cacheParam(paramSet, "grainAdvancedMicrostructureSigmaNm", data->grainAdvancedMicrostructureSigmaNm);
+  cacheParam(paramSet, "grainAdvancedReset", data->grainAdvancedReset);
   cacheParam(paramSet, "grainSeed", data->grainSeed);
   cacheParam(paramSet, "grainAnimate", data->grainAnimate);
   cacheParam(paramSet, "grainSynthesisSize", data->grainSynthesisSize);
@@ -6595,6 +6754,40 @@ void releaseInstanceRendererResources(InstanceData *data, bool resetRenderer) {
   }
 }
 
+bool resetAdvancedGrainDefaults(InstanceData *data, OfxParamSetHandle paramSet) {
+  if (!data || !paramSet || !gParamHost) {
+    return false;
+  }
+  const std::array<std::pair<OfxParamHandle, double>, 14> defaults = {{
+    {data->grainAdvancedParticleScaleR, 1.2},
+    {data->grainAdvancedParticleScaleG, 1.0},
+    {data->grainAdvancedParticleScaleB, 2.5},
+    {data->grainAdvancedLayerScaleCoarse, 6.0},
+    {data->grainAdvancedLayerScaleMedium, 1.0},
+    {data->grainAdvancedLayerScaleFine, 0.4},
+    {data->grainAdvancedDensityFloorR, 0.04},
+    {data->grainAdvancedDensityFloorG, 0.05},
+    {data->grainAdvancedDensityFloorB, 0.06},
+    {data->grainAdvancedUniformityR, 0.99},
+    {data->grainAdvancedUniformityG, 0.97},
+    {data->grainAdvancedUniformityB, 0.98},
+    {data->grainAdvancedMicrostructureScaleUm, 0.2},
+    {data->grainAdvancedMicrostructureSigmaNm, 30.0},
+  }};
+  for (const auto &item : defaults) {
+    if (!item.first) {
+      return false;
+    }
+  }
+  gParamHost->paramEditBegin(paramSet, "Reset advanced grain controls");
+  bool success = true;
+  for (const auto &item : defaults) {
+    success = gParamHost->paramSetValue(item.first, item.second) == kOfxStatOK && success;
+  }
+  gParamHost->paramEditEnd(paramSet);
+  return success;
+}
+
 OfxStatus releaseInactiveInstanceResources(OfxImageEffectHandle effect, bool resetRenderer) {
   if (!effect) {
     return kOfxStatOK;
@@ -6634,6 +6827,12 @@ OfxStatus instanceChanged(OfxImageEffectHandle effect, OfxPropertySetHandle inAr
   const bool refreshHostColourDiagnosticsChanged = changedName && std::strcmp(changedName, "refreshHostColourDiagnostics") == 0;
   const bool supportAboutHelpChanged = changedName && std::strcmp(changedName, "supportAboutHelp") == 0;
   const bool supportOpenMCNexusChanged = changedName && std::strcmp(changedName, "supportOpenMCNexus") == 0;
+  const bool grainAdvancedResetChanged = changedName && std::strcmp(changedName, "grainAdvancedReset") == 0;
+  if (grainAdvancedResetChanged) {
+    OfxParamSetHandle paramSet = nullptr;
+    gEffectHost->getParamSet(effect, &paramSet);
+    return resetAdvancedGrainDefaults(data, paramSet) ? kOfxStatOK : kOfxStatReplyDefault;
+  }
   if (supportAboutHelpChanged) {
     if (openExternalUrl("https://github.com/ciqueira/LookFilmLab")) {
       return kOfxStatOK;
@@ -7512,6 +7711,21 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
   defineGroup(paramSet, "calibrationGroup", "Calibration", false);
   defineGroup(paramSet, "timelineDebugGroup", "TEMP - Colour Management Debug", true);
   defineGroup(paramSet, "grainGroup", "Grain", true);
+  if (isProductGrain()) {
+    defineGroup(paramSet, "grainAdvancedGroup", "Advanced Grain", false);
+    defineGroup(
+      paramSet, "grainAdvancedParticleChannelsGroup", "Particle Channels", true, "grainAdvancedGroup"
+    );
+    defineGroup(
+      paramSet, "grainAdvancedEmulsionLayersGroup", "Emulsion Layers", true, "grainAdvancedGroup"
+    );
+    defineGroup(
+      paramSet, "grainAdvancedDensityDistributionGroup", "Density Distribution", true, "grainAdvancedGroup"
+    );
+    defineGroup(
+      paramSet, "grainAdvancedMicrostructureGroup", "Microstructure", true, "grainAdvancedGroup"
+    );
+  }
   defineGroup(paramSet, "grainSynthesisGroup", "Grain Synthesis", false);
   defineGroup(paramSet, "halationGroup", "Halation", false);
   defineGroup(paramSet, "diffusionGroup", "Diffusion", false);
@@ -7857,6 +8071,65 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle) {
   defineDouble(paramSet, "grainFinalBlurUm", "Final Grain Blur", 7.17, 0.0, 25.0, "grainGroup");
   defineDouble(paramSet, "grainBlurDyeCloudsUm", "Dye Cloud Blur um", 1.0, 0.0, 10.0, "grainGroup");
   defineDouble2D(paramSet, "grainMicroStructure", "Micro Structure", 0.2, 30.0, "grainGroup");
+  if (isProductGrain()) {
+    definePrecisionDouble(
+      paramSet, "grainAdvancedParticleScaleR", "Red",
+      1.2, 0.05, 8.0, 0.25, 4.0, 0.01, 3, "grainAdvancedParticleChannelsGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedParticleScaleG", "Green",
+      1.0, 0.05, 8.0, 0.25, 4.0, 0.01, 3, "grainAdvancedParticleChannelsGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedParticleScaleB", "Blue",
+      2.5, 0.05, 8.0, 0.25, 4.0, 0.01, 3, "grainAdvancedParticleChannelsGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedLayerScaleCoarse", "Coarse",
+      6.0, 0.05, 12.0, 0.5, 8.0, 0.01, 3, "grainAdvancedEmulsionLayersGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedLayerScaleMedium", "Medium",
+      1.0, 0.05, 8.0, 0.25, 3.0, 0.01, 3, "grainAdvancedEmulsionLayersGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedLayerScaleFine", "Fine",
+      0.4, 0.01, 4.0, 0.1, 1.5, 0.01, 3, "grainAdvancedEmulsionLayersGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedDensityFloorR", "Floor R",
+      0.04, 0.0, 0.25, 0.0, 0.12, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedDensityFloorG", "Floor G",
+      0.05, 0.0, 0.25, 0.0, 0.12, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedDensityFloorB", "Floor B",
+      0.06, 0.0, 0.25, 0.0, 0.12, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedUniformityR", "Uniformity R",
+      0.99, 0.0, 1.0, 0.8, 1.0, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedUniformityG", "Uniformity G",
+      0.97, 0.0, 1.0, 0.8, 1.0, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedUniformityB", "Uniformity B",
+      0.98, 0.0, 1.0, 0.8, 1.0, 0.001, 3, "grainAdvancedDensityDistributionGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedMicrostructureScaleUm", "Scale (um)",
+      0.2, 0.0, 10.0, 0.0, 2.0, 0.01, 3, "grainAdvancedMicrostructureGroup"
+    );
+    definePrecisionDouble(
+      paramSet, "grainAdvancedMicrostructureSigmaNm", "Sigma (nm)",
+      30.0, 0.0, 2000.0, 0.0, 600.0, 1.0, 1, "grainAdvancedMicrostructureGroup"
+    );
+    definePushButton(paramSet, "grainAdvancedReset", "Reset Advanced", "grainAdvancedGroup");
+  }
   defineInt(paramSet, kGrainSeedParamName, "Seed", descriptorGrainSeedDefault(), kGrainSeedMin, kGrainSeedMax, "grainGroup");
   defineBool(paramSet, "grainAnimate", "Animate", true, "grainGroup");
   defineDouble(paramSet, "grainSynthesisSize", "Synthesis Size", 1.0, 0.25, 4.0, "grainGroup");

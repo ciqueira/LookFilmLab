@@ -25,7 +25,7 @@ Esta distribuição de demonstração inclui:
 | Look Film Lab CINE | 0.2.0 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=117f6d51-727b-4981-92d4-d052bb6c0899&sig=071415544dc13856) |
 | Look Film Lab PHOTO | 0.1.1 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=8f651471-a116-4231-9d82-5f23c32233f0&sig=a1be7adb4c6af5f3) |
 | Look Film Lab SCAN | 0.1.4 | OpenKey | [Obter Chave](https://bridge.mcnexus.app/github/claim?t=lookfilmlab-oss&tmpl=3c4450eb-d2ab-4cfd-90ba-47e419fa0c20&sig=c6114afbf51bc390) |
-| Look Film Lab GRAIN | 0.1.2 | Pendente | — |
+| Look Film Lab GRAIN | 0.1.4 | Pendente | — |
 
 ## Look Film Lab CINE
 
@@ -86,12 +86,19 @@ primárias e a curva de transferência de trabalho são preservadas na saída:
 uma entrada ARRI Wide Gamut 3 / LogC3 retorna ARRI Wide Gamut 3 / LogC3 com
 grain.
 
-Kodak Vision3 5219 500T é usado internamente como referência física fixa para
-exposição, revelação e estrutura de camadas. Somente sua diferença estocástica
-de densidade é devolvida ao RGB original; portanto, o look, a temperatura de
-cor e a curva característica do negativo não são aplicados. Os controles
-públicos são `Working Color Space`, `Working Gamma`, `Film Format`, `Amount`,
-`Saturation`, `Seed` e `Animate`.
+Uma referência física interna fixa fornece a exposição, a revelação e a
+estrutura de camadas. Somente sua diferença estocástica de densidade é
+devolvida ao RGB original; portanto, nenhum look, temperatura de cor ou curva
+característica de negativo é aplicado. Os controles públicos são
+`Working Color Space`, `Working Gamma`, `Film Format`, `Amount`, `Saturation`,
+`Particle Area um2`, `Final Grain Blur`, `Dye Cloud Blur um`, `Seed` e
+`Animate`. O grupo recolhido `Advanced Grain` oferece controles
+separados e precisos, organizados nos subgrupos `Particle Channels`,
+`Emulsion Layers`, `Density Distribution` e `Microstructure`. Os nomes curtos
+cobrem escala de partículas sensíveis a vermelho, verde e azul; escala das
+camadas grossa, média e fina; piso de densidade e uniformidade RGB; e
+escala/sigma da microestrutura. `Reset Advanced` restaura somente esses
+controles avançados para seus valores de referência de fábrica.
 
 ## Suporte de Plataforma
 

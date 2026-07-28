@@ -60,8 +60,16 @@ VERSION
 - Reduced the Production UI to approved public controls.
 - Added the standalone `Look Film Lab GRAIN` product
   (`com.mclookfilmlab.grain`) with a neutral grain-only Metal/Vulkan path,
-  a fixed Kodak Vision3 5219 500T density reference, calibrated grain strength,
-  and same-space output.
+  a fixed internal density reference, calibrated grain strength, and same-space
+  output.
+- Exposed `Particle Area um2`, `Final Grain Blur`, and `Dye Cloud Blur um` as
+  functional Look Film Lab GRAIN production controls.
+- Added a collapsed `Advanced Grain` group with compatibility-safe scalar
+  controls and `Reset Advanced`, while retaining the legacy vector parameters
+  for existing projects and calibration builds.
+- Organized `Advanced Grain` into expanded `Particle Channels`,
+  `Emulsion Layers`, `Density Distribution`, and `Microstructure` subgroups
+  with compact control labels.
 - Added Calibration workflow for saving and loading an active production
   calibration master.
 - Added support for embedding the active calibration into the Production

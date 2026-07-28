@@ -43,7 +43,7 @@ that binary.
 Recommended release tag format:
 
 ```text
-lookfilmlab-v0.1.2
+lookfilmlab-v0.1.4
 ```
 
 Recommended release note:
@@ -111,7 +111,7 @@ so the Production bundle contains a frozen copy.
 Expected GRAIN OpenFX host display:
 
 ```text
-MC Plugins > Look Film Lab GRAIN v0.1.2
+MC Plugins > Look Film Lab GRAIN v0.1.4
 ```
 
 Expected identifier:
