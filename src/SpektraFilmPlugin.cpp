@@ -32,6 +32,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -52,6 +53,7 @@
 #include <string>
 #include <system_error>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #if defined __APPLE__
