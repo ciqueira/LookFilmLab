@@ -3978,6 +3978,7 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
     staticFilm.inputToReferenceXyz.buffer != VK_NULL_HANDLE &&
     staticFilm.inputToSrgb.buffer != VK_NULL_HANDLE &&
     staticFilm.colorDecodeLuts.buffer != VK_NULL_HANDLE &&
+    staticFilm.colorEncodeLuts.buffer != VK_NULL_HANDLE &&
     staticFilm.colorTransferKinds.buffer != VK_NULL_HANDLE &&
     staticFilm.mallettRawMatrix.buffer != VK_NULL_HANDLE &&
     staticFilm.hanatosRawResponse.buffer != VK_NULL_HANDLE &&
@@ -4004,7 +4005,6 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
      staticFilm.standardObserverCmfs.buffer != VK_NULL_HANDLE &&
      staticFilm.filmScanToOutputRgb.buffer != VK_NULL_HANDLE &&
      staticFilm.paperScanToOutputRgb.buffer != VK_NULL_HANDLE &&
-     staticFilm.colorEncodeLuts.buffer != VK_NULL_HANDLE &&
      staticFilm.academyPrinterDensityData.buffer != VK_NULL_HANDLE);
   const bool grainResourcesCached =
     !includeGrainResources ||
@@ -4039,12 +4039,9 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
     lastError = "Unable to locate generated paper density curves.";
     return false;
   }
-  if (!curves->inputToReferenceXyz || !curves->inputToSrgb || !colorDecodeLuts() || !colorTransferKinds()) {
-    lastError = "Unable to locate generated Vulkan input color transform data.";
-    return false;
-  }
-  if (includePrintScanResources && (!colorEncodeLuts() || !colorTransferParams())) {
-    lastError = "Unable to locate generated Vulkan output color transform data.";
+  if (!curves->inputToReferenceXyz || !curves->inputToSrgb ||
+      !colorDecodeLuts() || !colorEncodeLuts() || !colorTransferKinds() || !colorTransferParams()) {
+    lastError = "Unable to locate generated Vulkan input/output color transform data.";
     return false;
   }
   if (curves->wavelengthCount == 0u || !curves->logSensitivity ||
@@ -4087,7 +4084,7 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
   if (needsHanatos && !loadHanatosSpectraData()) {
     return false;
   }
-  if (includePrintScanResources && !loadOutputGamutCompressionData()) {
+  if (!loadOutputGamutCompressionData()) {
     return false;
   }
 
@@ -4103,28 +4100,26 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
     static_cast<VkDeviceSize>(kSpektraColorTransferLutSize) *
     sizeof(float);
   std::vector<float> colorEncodeAndGamutData;
-  if (includePrintScanResources) {
-    colorEncodeAndGamutData.reserve(
-      static_cast<size_t>(kSpektraColorSpaceCount) * static_cast<size_t>(kSpektraColorTransferLutSize) +
-      outputGamutCompressionData.size() +
-      static_cast<size_t>(kSpektraColorSpaceCount)
-    );
-    colorEncodeAndGamutData.insert(
-      colorEncodeAndGamutData.end(),
-      colorEncodeLuts(),
-      colorEncodeLuts() + static_cast<size_t>(kSpektraColorSpaceCount) * static_cast<size_t>(kSpektraColorTransferLutSize)
-    );
-    colorEncodeAndGamutData.insert(
-      colorEncodeAndGamutData.end(),
-      outputGamutCompressionData.begin(),
-      outputGamutCompressionData.end()
-    );
-    colorEncodeAndGamutData.insert(
-      colorEncodeAndGamutData.end(),
-      colorTransferParams(),
-      colorTransferParams() + static_cast<size_t>(kSpektraColorSpaceCount)
-    );
-  }
+  colorEncodeAndGamutData.reserve(
+    static_cast<size_t>(kSpektraColorSpaceCount) * static_cast<size_t>(kSpektraColorTransferLutSize) +
+    outputGamutCompressionData.size() +
+    static_cast<size_t>(kSpektraColorSpaceCount)
+  );
+  colorEncodeAndGamutData.insert(
+    colorEncodeAndGamutData.end(),
+    colorEncodeLuts(),
+    colorEncodeLuts() + static_cast<size_t>(kSpektraColorSpaceCount) * static_cast<size_t>(kSpektraColorTransferLutSize)
+  );
+  colorEncodeAndGamutData.insert(
+    colorEncodeAndGamutData.end(),
+    outputGamutCompressionData.begin(),
+    outputGamutCompressionData.end()
+  );
+  colorEncodeAndGamutData.insert(
+    colorEncodeAndGamutData.end(),
+    colorTransferParams(),
+    colorTransferParams() + static_cast<size_t>(kSpektraColorSpaceCount)
+  );
   const VkDeviceSize transferKindBytes = static_cast<VkDeviceSize>(kSpektraColorSpaceCount) * sizeof(uint32_t);
   const VkDeviceSize mallettRawMatrixBytes = 9u * sizeof(float);
   const std::vector<float> baseFilmSensitivityLinear = makeLinearSensitivity(curves->logSensitivity, curves->wavelengthCount);
@@ -4174,6 +4169,12 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
       !uploadStaticBuffer(staticFilm.inputToReferenceXyz, curves->inputToReferenceXyz, inputMatrixBytes, "input to reference XYZ matrices") ||
       !uploadStaticBuffer(staticFilm.inputToSrgb, curves->inputToSrgb, inputMatrixBytes, "input to sRGB matrices") ||
       !uploadStaticBuffer(staticFilm.colorDecodeLuts, colorDecodeLuts(), transferLutBytes, "color decode LUTs") ||
+      !uploadStaticBuffer(
+        staticFilm.colorEncodeLuts,
+        colorEncodeAndGamutData.data(),
+        static_cast<VkDeviceSize>(colorEncodeAndGamutData.size()) * sizeof(float),
+        "color encode LUTs and output gamut compression data"
+      ) ||
       !uploadStaticBuffer(staticFilm.colorTransferKinds, colorTransferKinds(), transferKindBytes, "color transfer kinds") ||
       !uploadStaticBuffer(staticFilm.mallettRawMatrix, mallettRawMatrix.data(), mallettRawMatrixBytes, "Mallett raw matrix") ||
       !uploadStaticBuffer(staticFilm.hanatosRawResponse, hanatosRawResponse.data(), hanatosRawResponseBytes, "Hanatos raw response") ||
@@ -4234,12 +4235,6 @@ bool VulkanRenderer::Impl::prepareStaticFilmResources(
         !uploadStaticBuffer(staticFilm.standardObserverCmfs, standardObserverCmfs(), spectralTripletBytes, "standard observer CMFs") ||
         !uploadStaticBuffer(staticFilm.filmScanToOutputRgb, curves->scanToOutputRgb, inputMatrixBytes, "film scan to output RGB") ||
         !uploadStaticBuffer(staticFilm.paperScanToOutputRgb, paperCurves->scanToOutputRgb, inputMatrixBytes, "paper scan to output RGB") ||
-        !uploadStaticBuffer(
-          staticFilm.colorEncodeLuts,
-          colorEncodeAndGamutData.data(),
-          static_cast<VkDeviceSize>(colorEncodeAndGamutData.size()) * sizeof(float),
-          "color encode LUTs and output gamut compression data"
-        ) ||
         !uploadStaticBuffer(staticFilm.academyPrinterDensityData, academyPrinterDensityData(), academyPrinterDensityBytes, "Academy printer density data")) {
       return false;
     }
@@ -5113,6 +5108,19 @@ bool VulkanRenderer::Impl::renderCoreBootstrap(
       !ensurePrivateScratchBuffer(coreFrame.source, sourceByteCount, fullFrameSourcePath ? "core full-frame source" : "core source") ||
       !ensurePrivateScratchBuffer(coreFrame.filmRaw, pixelStorageByteCount, "core film raw") ||
       !ensurePrivateScratchBuffer(coreFrame.destination, pixelStorageByteCount, "core destination")) {
+    return false;
+  }
+  const VkDeviceSize requiredColorEncodeBytes =
+    static_cast<VkDeviceSize>(
+      static_cast<uint64_t>(kSpektraColorSpaceCount) *
+      static_cast<uint64_t>(kSpektraColorTransferLutSize + kSpektraOutputGamutCompressionStride + 1u) *
+      sizeof(float)
+    );
+  if (staticFilm.colorEncodeLuts.buffer == VK_NULL_HANDLE ||
+      staticFilm.colorEncodeLuts.capacity < requiredColorEncodeBytes) {
+    lastError = finalGrainOnly
+      ? "Vulkan Grain Only output encoding resources are unavailable."
+      : "Vulkan output encoding resources are unavailable.";
     return false;
   }
   const uint32_t formatGroups = static_cast<uint32_t>((pixelCount + 255u) / 256u);

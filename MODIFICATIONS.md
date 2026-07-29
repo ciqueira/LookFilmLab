@@ -70,6 +70,8 @@ VERSION
 - Organized `Advanced Grain` into expanded `Particle Channels`,
   `Emulsion Layers`, `Density Distribution`, and `Microstructure` subgroups
   with compact control labels.
+- Fixed Vulkan Grain Only output encoding by making encode LUTs and transfer
+  parameters available independently of the Print/Scan resource path.
 - Added Calibration workflow for saving and loading an active production
   calibration master.
 - Added support for embedding the active calibration into the Production
